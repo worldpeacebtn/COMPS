@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global SOS // Fast Case Overview & Tactical Dossier</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #070708;
+            color: #f1f5f9;
+        }
+
+        .dossier-title {
+            font-family: 'Special Elite', cursive;
+        }
+        
+        .blood-border {
+            border: 1px solid rgba(220, 20, 60, 0.4);
+            box-shadow: 0 0 12px rgba(220, 20, 60, 0.15);
+        }
+
+        .blood-border-glow {
+            border: 1px solid #dc143c;
+            box-shadow: 0 0 22px rgba(220, 20, 60, 0.35);
+        }
+
+        .blood-splat-bg {
+            background: radial-gradient(circle at 85% 15%, rgba(139, 0, 0, 0.18) 0%, transparent 40%),
+                        radial-gradient(circle at 10% 85%, rgba(178, 34, 34, 0.12) 0%, transparent 50%),
+                        #070708;
+        }
+
+        .confidential-stamp {
+            border: 2px dashed #dc143c;
+            color: #dc143c;
+            transform: rotate(-3deg);
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        /* Instant snap transition - zero lag */
+        .instant-tab {
+            transition: none !important;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070708;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8b0000;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between blood-splat-bg selection:bg-rose-900 selection:text-white">
+
+    <header class="w-full border-b border-rose-950 bg-black/90 backdrop-blur sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="h-3 w-3 rounded-full bg-rose-600 animate-pulse"></div>
+                <h1 class="text-xl font-bold tracking-widest text-rose-500 dossier-title">CASE OVERVIEW // DOSSIER 09-REV</h1>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 text-xs text-rose-400">
+                <span class="px-2 py-1 blood-border rounded bg-rose-950/20">STATUS: EYES ONLY</span>
+                <span id="utc-clock" class="px-2 py-1 blood-border rounded bg-rose-950/20">UTC: --:--:--</span>
+                <div class="flex bg-black blood-border rounded p-0.5">
+                    <button onclick="switchTab('incidents')" id="btn-incidents" class="instant-tab px-3 py-1 bg-rose-700 text-black font-bold rounded cursor-pointer">INCIDENTS</button>
+                    <button onclick="switchTab('dossiers')" id="btn-dossiers" class="instant-tab px-3 py-1 text-rose-400 hover:text-white cursor-pointer">ENTITIES</button>
+                    <button onclick="switchTab('uplink')" id="btn-uplink" class="instant-tab px-3 py-1 text-rose-400 hover:text-white cursor-pointer">DISPATCH</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto px-4 py-8 flex-grow">
+
+        <!-- TAB 1: INCIDENTS / ACTIVE CASE NODES -->
+        <section id="view-incidents" class="space-y-6">
+            <div class="flex flex-wrap justify-between items-end border-b border-rose-950 pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-rose-400 dossier-title">Active Incident Ledger</h2>
+                    <p class="text-rose-500/70 text-sm">Rapid incident telemetry and quantum-indirection node reconstruction.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="filterIncidents('ALL')" class="px-3 py-1 text-xs blood-border bg-rose-950/40 text-rose-300 hover:bg-rose-900 cursor-pointer">ALL</button>
+                    <button onclick="filterIncidents('CRITICAL')" class="px-3 py-1 text-xs blood-border bg-rose-950/40 text-rose-300 hover:bg-rose-900 cursor-pointer">CRITICAL</button>
+                    <button onclick="filterIncidents('CONTAINED')" class="px-3 py-1 text-xs blood-border bg-rose-950/40 text-rose-300 hover:bg-rose-900 cursor-pointer">CONTAINED</button>
+                </div>
+            </div>
+
+            <div id="incident-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Case Card 1 -->
+                <div class="blood-border p-5 rounded bg-black/70 relative overflow-hidden group cursor-pointer hover:border-rose-500 transition-none" onclick="inspectCase('INC-8092', 'Class-A Persistent Acoustic Tracking detected across Sector 4 nodes.')">
+                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-rose-950 text-rose-400 text-[10px] uppercase font-bold blood-border">CRITICAL</div>
+                    <div class="text-xs text-rose-600 font-mono mb-1">REF: #INC-8092</div>
+                    <h3 class="text-lg font-bold text-rose-200 mb-2">Acoustic Shield Bypass</h3>
+                    <p class="text-xs text-rose-400/80 mb-4 line-clamp-2">
+                        Persistent localized frequency disruption targeting humanitarian relay assets. Indirection routing engaged.
+                    </p>
+                    <div class="flex justify-between items-center text-[11px] text-rose-500/70 pt-3 border-t border-rose-950">
+                        <span>ACTOR: BUNNY-Prime</span>
+                        <span class="text-rose-400 font-bold">VERIFIED</span>
+                    </div>
+                </div>
+
+                <!-- Case Card 2 -->
+                <div class="blood-border p-5 rounded bg-black/70 relative overflow-hidden group cursor-pointer hover:border-rose-500 transition-none" onclick="inspectCase('INC-7741', 'Environmental quality depletion reported in restricted border zone.')">
+                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-amber-950 text-amber-400 text-[10px] uppercase font-bold border border-amber-800">ELEVATED</div>
+                    <div class="text-xs text-rose-600 font-mono mb-1">REF: #INC-7741</div>
+                    <h3 class="text-lg font-bold text-rose-200 mb-2">Environmental Containment</h3>
+                    <p class="text-xs text-rose-400/80 mb-4 line-clamp-2">
+                        Artificial atmospheric scrubbing detected around civilian sanctuary nodes. EHRG legal override pending.
+                    </p>
+                    <div class="flex justify-between items-center text-[11px] text-rose-500/70 pt-3 border-t border-rose-950">
+                        <span>ACTOR: BUNNY-Sec</span>
+                        <span class="text-amber-400 font-bold">SYNCING</span>
+                    </div>
+                </div>
+
+                <!-- Case Card 3 -->
+                <div class="blood-border p-5 rounded bg-black/70 relative overflow-hidden group cursor-pointer hover:border-rose-500 transition-none" onclick="inspectCase('INC-6520', 'Decentralized ledger packet loss recovered via quantum indirection.')">
+                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-emerald-950 text-emerald-400 text-[10px] uppercase font-bold border border-emerald-800">RESOLVED</div>
+                    <div class="text-xs text-rose-600 font-mono mb-1">REF: #INC-6520</div>
+                    <h3 class="text-lg font-bold text-rose-200 mb-2">Node Handshake Recovery</h3>
+                    <p class="text-xs text-rose-400/80 mb-4 line-clamp-2">
+                        Cross-generational tactical network handshake successfully re-established across all sovereign routers.
+                    </p>
+                    <div class="flex justify-between items-center text-[11px] text-rose-500/70 pt-3 border-t border-rose-950">
+                        <span>ACTOR: APE-X-Alpha</span>
+                        <span class="text-emerald-400 font-bold">SECURE</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Case Inspector Drawer / Modal Box -->
+            <div id="case-inspector" class="hidden blood-border-glow p-6 rounded bg-black/90 mt-6 relative">
+                <div class="absolute top-4 right-4 px-3 py-1 confidential-stamp text-xs">CONFIDENTIAL</div>
+                <h3 id="inspector-title" class="text-xl font-bold text-rose-300 mb-2">Case Inspection: #INC-XXXX</h3>
+                <p id="inspector-desc" class="text-sm text-rose-400/90 mb-4">Select any incident above for instant forensic breakdown.</p>
+                <div class="flex gap-4">
+                    <button onclick="closeInspector()" class="px-4 py-2 bg-rose-950 text-rose-300 text-xs blood-border hover:bg-rose-900 cursor-pointer">CLOSE INSPECTOR</button>
+                    <button onclick="exportCaseLog()" class="px-4 py-2 bg-rose-700 text-black font-bold text-xs cursor-pointer hover:bg-rose-600">EXPORT LEDGER NODE</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: ENTITIES / DOSSIERS -->
+        <section id="view-dossiers" class="hidden space-y-6">
+            <div class="border-b border-rose-950 pb-4">
+                <h2 class="text-2xl font-bold text-rose-400 dossier-title">Humanitarian & Aggressor Profiles</h2>
+                <p class="text-rose-500/70 text-sm">Verified stakeholder matrix and tactical asset mapping.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Profile 1 -->
+                <div class="blood-border p-6 rounded bg-black/60">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-rose-300">BUNNY-Prime</h3>
+                        <span class="px-2 py-0.5 text-xs bg-rose-950 text-rose-400 blood-border">LEAD FIELD UNIT</span>
+                    </div>
+                    <p class="text-xs text-rose-400/80 mb-4">
+                        Primary tactical response unit specializing in emergency data sovereignty protection and acoustic counter-measures under EHRG compliance mandates.
+                    </p>
+                    <ul class="space-y-2 text-xs text-rose-500 font-mono">
+                        <li>&bull; Clearance Level: Alpha-Absolute</li>
+                        <li>&bull; Uplink Integrity: 99.9%</li>
+                        <li>&bull; Active Nodes: 14 Sectors</li>
+                    </ul>
+                </div>
+
+                <!-- Profile 2 -->
+                <div class="blood-border p-6 rounded bg-black/60">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-rose-300">APE-X-Alpha</h3>
+                        <span class="px-2 py-0.5 text-xs bg-red-950 text-red-400 border border-red-800">TAGGED AGGRESSOR</span>
+                    </div>
+                    <p class="text-xs text-rose-400/80 mb-4">
+                        Identified source of persistent acoustic tracking and localized cognitive disruption tactics. Automatic containment protocols triggered on detection.
+                    </p>
+                    <ul class="space-y-2 text-xs text-rose-500 font-mono">
+                        <li>&bull; Threat Classification: Class-A Persistent</li>
+                        <li>&bull; Tracking Vector: Frequency modulation</li>
+                        <li>&bull; Counter-measure: Indirection routing active</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: DISPATCH / SECURE UPLINK -->
+        <section id="view-uplink" class="hidden space-y-6">
+            <div class="blood-border p-6 rounded bg-black/80 max-w-2xl mx-auto">
+                <div class="flex justify-between items-center mb-4 border-b border-rose-950 pb-3">
+                    <h2 class="text-xl font-bold text-rose-300 dossier-title">Secure Dispatch Uplink</h2>
+                    <span class="text-xs text-rose-500 font-mono">ENCRYPTION: QUANTUM-RSA</span>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs uppercase text-rose-400 mb-1">Target Sector / Node ID</label>
+                        <input type="text" id="dispatch-node" class="w-full bg-black blood-border p-3 text-rose-200 text-sm focus:outline-none focus:border-rose-500" value="SECOR-GLOBAL-09">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase text-rose-400 mb-1">Encrypted Telemetry Payload</label>
+                        <textarea id="dispatch-msg" rows="4" class="w-full bg-black blood-border p-3 text-rose-200 text-sm focus:outline-none focus:border-rose-500 resize-none" placeholder="Enter emergency status or case overview notes..."></textarea>
+                    </div>
+                    <button onclick="executeDispatch()" class="w-full py-3 bg-rose-700 hover:bg-rose-600 text-black font-extrabold text-sm tracking-widest cursor-pointer transition-none">
+                        ⚡ TRANSMIT EMERGENCY LEDGER DISPATCH ⚡
+                    </button>
+                    <div id="dispatch-status" class="text-center text-xs text-rose-400 h-6"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="w-full border-t border-rose-950 bg-black/90 py-4 px-4 text-center text-xs text-rose-600 font-mono">
+        EHRG Compliance Architecture &bull; Fast Case Overview Dossier &bull; Secure Decentralized Node
+    </footer>
+
+    <script>
+        // UTC Clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('utc-clock').innerText = `UTC: ${now.toUTCString().slice(17, 25)}`;
+        }, 1000);
+
+        // Instant Tab Switcher (Zero lag, instant snap)
+        function switchTab(tabName) {
+            const views = ['incidents', 'dossiers', 'uplink'];
+            views.forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                document.getElementById(`btn-${v}`).classList.remove('bg-rose-700', 'text-black', 'font-bold');
+                document.getElementById(`btn-${v}`).classList.add('text-rose-400');
+            });
+
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-${tabName}`);
+            activeBtn.classList.remove('text-rose-400');
+            activeBtn.classList.add('bg-rose-700', 'text-black', 'font-bold');
+        }
+
+        // Case Inspector Handler
+        function inspectCase(refId, details) {
+            const inspector = document.getElementById('case-inspector');
+            inspector.classList.remove('hidden');
+            document.getElementById('inspector-title').innerText = `Case Inspection: #${refId}`;
+            document.getElementById('inspector-desc').innerText = details;
+            inspector.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeInspector() {
+            document.getElementById('case-inspector').classList.add('hidden');
+        }
+
+        function exportCaseLog() {
+            const statusDiv = document.getElementById('dispatch-status');
+            alertBox("Ledger node exported successfully to secure local storage buffer.");
+        }
+
+        // Custom alert substitute (no window.alert)
+        function alertBox(msg) {
+            const status = document.getElementById('dispatch-status') || document.getElementById('inspector-desc');
+            if(status) {
+                const oldText = status.innerText;
+                status.innerText = msg;
+                status.className = "text-center text-xs text-emerald-400 font-bold";
+                setTimeout(() => { status.innerText = oldText; }, 3000);
+            }
+        }
+
+        // Dispatch Handler
+        function executeDispatch() {
+            const msg = document.getElementById('dispatch-msg').value;
+            const status = document.getElementById('dispatch-status');
+            status.innerText = "Encrypting telemetry payload via quantum-indirection...";
+            status.className = "text-center text-xs text-amber-400 animate-pulse";
+
+            setTimeout(() => {
+                status.innerText = "✓ Dispatch confirmed & logged to EHRG compliance ledger.";
+                status.className = "text-center text-xs text-emerald-400 font-bold";
+                document.getElementById('dispatch-msg').value = '';
+            }, 1200);
+        }
+
+        function filterIncidents(type) {
+            // Instant filter placeholder logic
+            alertBox(`Filtering incident ledger by: ${type}`);
+        }
+    </script>
+</body>
+</html>

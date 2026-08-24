@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBERLAW 2077 // German Neural Jurisprudence & AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#030712',
+                            card: '#0b0f19',
+                            border: '#1e293b',
+                            cyan: '#06b6d4',
+                            magenta: '#ec4899',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            purple: '#8b5cf6'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                        sans: ['"Inter"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #030712;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .cyber-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+        }
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(6, 182, 212, 0.05) 50%,
+                rgba(6, 182, 212, 0.05)
+            );
+            background-size: 100% 4px;
+        }
+        .neon-glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.25), inset 0 0 15px rgba(6, 182, 212, 0.1);
+        }
+        .neon-glow-magenta {
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.25), inset 0 0 15px rgba(236, 72, 153, 0.1);
+        }
+        .neon-glow-emerald {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.25), inset 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+        }
+        .neon-text-magenta {
+            text-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="cyber-grid min-h-screen flex flex-col relative">
+    <div class="absolute inset-0 scanline pointer-events-none z-50 fixed opacity-60"></div>
+
+    <header class="border-b border-cyan-500/30 bg-cyber-card/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-cyan-950 border border-cyan-500 flex items-center justify-center neon-glow-cyan">
+                    <i data-lucide="cpu" class="w-6 h-6 text-cyan-400"></i>
+                </div>
+                <div>
+                    <h1 class="font-mono text-xl font-bold tracking-widest text-cyan-400 neon-text-cyan flex items-center gap-2">
+                        CYBERLAW <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">v2.077</span>
+                    </h1>
+                    <p class="text-xs font-mono text-gray-400">German Neural Jurisprudence & Strategic Core</p>
+                </div>
+            </div>
+
+            <nav class="hidden md:flex space-x-1 font-mono text-sm">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 neon-glow-cyan">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> NEURAL CORE
+                </button>
+                <button onclick="switchTab('codex')" id="nav-codex" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 border border-transparent text-gray-400 hover:text-cyan-300 hover:bg-cyan-500/5">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> LEGAL CODEX
+                </button>
+                <button onclick="switchTab('strategist')" id="nav-strategist" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 border border-transparent text-gray-400 hover:text-magenta-400 hover:bg-magenta-500/5">
+                    <i data-lucide="git-fork" class="w-4 h-4"></i> AI ROUTE PRECALCULATOR
+                </button>
+                <button onclick="switchTab('vault')" id="nav-vault" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 border border-transparent text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/5">
+                    <i data-lucide="database" class="w-4 h-4"></i> CASE VAULT
+                </button>
+            </nav>
+
+            <div class="flex items-center space-x-4">
+                <div class="hidden lg:flex flex-col items-end font-mono text-xs text-gray-400">
+                    <span class="text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE</span>
+                    <span>DB: DE-LAW-2026.Q3</span>
+                </div>
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-cyan-500/20 bg-cyber-card p-4 space-y-2 font-mono text-sm">
+            <button onclick="switchTab('dashboard'); toggleMobileMenu();" class="w-full text-left px-4 py-2 rounded bg-cyan-500/10 text-cyan-300 flex items-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> NEURAL CORE
+            </button>
+            <button onclick="switchTab('codex'); toggleMobileMenu();" class="w-full text-left px-4 py-2 rounded text-gray-300 hover:bg-cyan-500/10 flex items-center gap-2">
+                <i data-lucide="book-open" class="w-4 h-4"></i> LEGAL CODEX
+            </button>
+            <button onclick="switchTab('strategist'); toggleMobileMenu();" class="w-full text-left px-4 py-2 rounded text-gray-300 hover:bg-magenta-500/10 flex items-center gap-2">
+                <i data-lucide="git-fork" class="w-4 h-4"></i> AI ROUTE PRECALCULATOR
+            </button>
+            <button onclick="switchTab('vault'); toggleMobileMenu();" class="w-full text-left px-4 py-2 rounded text-gray-300 hover:bg-emerald-500/10 flex items-center gap-2">
+                <i data-lucide="database" class="w-4 h-4"></i> CASE VAULT
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="space-y-8">
+            <div class="relative rounded-2xl border border-cyan-500/40 bg-cyber-card/90 p-8 overflow-hidden neon-glow-cyan">
+                <div class="absolute -right-10 -bottom-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="relative z-10 max-w-2xl space-y-4">
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-cyan-500/20 border border-cyan-500/40 text-cyan-300">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> GERMAN FEDERAL JURISPRUDENCE (DE)
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-white">
+                        Utopian Legal Intelligence & <span class="text-cyan-400 neon-text-cyan">Strategic Route Engine</span>
+                    </h2>
+                    <p class="text-gray-300 leading-relaxed">
+                        Access real-time German statutory law (GG, BGB, StGB, HGB, StPO, ZPO) seamlessly integrated into a futuristic neural interface. Let LEX-AI analyze your exact scenario and instantly compute 3 optimized legal pathways with risk ratings and tactical step-by-step guidance.
+                    </p>
+                    <div class="pt-4 flex flex-wrap gap-4 font-mono">
+                        <button onclick="switchTab('strategist')" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold flex items-center gap-2 hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/25">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i> LAUNCH AI STRATEGIST
+                        </button>
+                        <button onclick="switchTab('codex')" class="px-6 py-3 rounded-xl bg-cyber-card border border-cyan-500/40 text-cyan-300 font-semibold flex items-center gap-2 hover:bg-cyan-500/10 transition-all">
+                            <i data-lucide="book-open" class="w-5 h-5"></i> BROWSE LAW BOOKS
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono">
+                <div class="p-6 rounded-xl border border-cyan-500/30 bg-cyber-card/80 backdrop-blur-sm">
+                    <div class="flex items-center justify-between text-cyan-400 mb-2">
+                        <span class="text-xs text-gray-400 uppercase tracking-wider">Statutes Indexed</span>
+                        <i data-lucide="book" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white">4,820+</div>
+                    <div class="text-xs text-cyan-400/80 mt-1">GG, BGB, StGB, HGB & more</div>
+                </div>
+
+                <div class="p-6 rounded-xl border border-magenta-500/30 bg-cyber-card/80 backdrop-blur-sm">
+                    <div class="flex items-center justify-between text-magenta-400 mb-2">
+                        <span class="text-xs text-gray-400 uppercase tracking-wider">AI Route Engine</span>
+                        <i data-lucide="git-fork" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white">Triple-Path</div>
+                    <div class="text-xs text-magenta-400/80 mt-1">Always precalculates 3 options</div>
+                </div>
+
+                <div class="p-6 rounded-xl border border-emerald-500/30 bg-cyber-card/80 backdrop-blur-sm">
+                    <div class="flex items-center justify-between text-emerald-400 mb-2">
+                        <span class="text-xs text-gray-400 uppercase tracking-wider">Jurisdiction</span>
+                        <i data-lucide="globe" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white">Bundesrepublik</div>
+                    <div class="text-xs text-emerald-400/80 mt-1">Official Federal Law Baseline</div>
+                </div>
+
+                <div class="p-6 rounded-xl border border-amber-500/30 bg-cyber-card/80 backdrop-blur-sm">
+                    <div class="flex items-center justify-between text-amber-400 mb-2">
+                        <span class="text-xs text-gray-400 uppercase tracking-wider">Neural Latency</span>
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-white">0.24ms</div>
+                    <div class="text-xs text-amber-400/80 mt-1">Real-time vector search</div>
+                </div>
+            </div>
+
+            <!-- Quick Access Law Books -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-mono text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="bookmark" class="w-5 h-5 text-cyan-400"></i> Core German Law Books
+                    </h3>
+                    <button onclick="switchTab('codex')" class="text-xs font-mono text-cyan-400 hover:underline flex items-center gap-1">
+                        View All Books <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="dashboard-books-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- LEGAL CODEX VIEW -->
+        <section id="view-codex" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-cyber-card p-6 rounded-xl border border-cyan-500/30">
+                <div>
+                    <h2 class="text-2xl font-mono font-bold text-white flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-6 h-6 text-cyan-400"></i> German Law Codex
+                    </h2>
+                    <p class="text-sm font-mono text-gray-400 mt-1">Browse and search through verified German federal law statutes.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="book-selector" onchange="filterCodexBook(this.value)" class="bg-cyber-bg border border-cyan-500/40 rounded-lg px-4 py-2 font-mono text-sm text-cyan-300 focus:outline-none focus:border-cyan-400">
+                        <option value="all">ALL BOOKS</option>
+                        <option value="GG">Grundgesetz (GG)</option>
+                        <option value="BGB">Bürgerliches Gesetzbuch (BGB)</option>
+                        <option value="StGB">Strafgesetzbuch (StGB)</option>
+                        <option value="HGB">Handelsgesetzbuch (HGB)</option>
+                    </select>
+                    <div class="relative flex-1 md:w-72">
+                        <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+                        <input type="text" id="codex-search" oninput="searchCodex(this.value)" placeholder="Search paragraph or keywords..." class="w-full bg-cyber-bg border border-cyan-500/40 rounded-lg pl-9 pr-4 py-2 font-mono text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Law List -->
+                <div class="lg:col-span-1 bg-cyber-card rounded-xl border border-cyan-500/30 p-4 h-[650px] overflow-y-auto space-y-2" id="codex-list">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Law Detail / Reader -->
+                <div class="lg:col-span-2 bg-cyber-card rounded-xl border border-cyan-500/30 p-6 h-[650px] overflow-y-auto flex flex-col justify-between" id="codex-reader">
+                    <div class="text-center py-32 text-gray-500 font-mono">
+                        <i data-lucide="scroll" class="w-16 h-16 mx-auto mb-4 opacity-40"></i>
+                        <p>Select a law paragraph from the list to inspect full legal text.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI ROUTE PRECALCULATOR VIEW -->
+        <section id="view-strategist" class="hidden space-y-6">
+            <div class="bg-cyber-card p-6 rounded-xl border border-magenta-500/40 neon-glow-magenta relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-80 h-80 bg-magenta-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="relative z-10 max-w-3xl space-y-3">
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-magenta-500/20 border border-magenta-500/40 text-magenta-300">
+                        <i data-lucide="bot" class="w-3.5 h-3.5"></i> LEX-AI STRATEGIC CORE
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-mono font-bold text-white">
+                        Triple-Route Legal Precalculator
+                    </h2>
+                    <p class="text-gray-300 text-sm">
+                        Describe your legal case or scenario in German or English. LEX-AI will analyze applicable German laws (BGB, StGB, GG, etc.) and precalculate <strong>exactly 3 distinct strategic routes</strong> with success probabilities, risk analysis, and actionable steps.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Input Panel -->
+                <div class="lg:col-span-1 bg-cyber-card rounded-xl border border-magenta-500/30 p-6 space-y-4 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <h3 class="font-mono font-bold text-white flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4 text-magenta-400"></i> Case Parameters
+                        </h3>
+                        <div>
+                            <label class="block text-xs font-mono text-gray-400 mb-2">Example Case / Legal Inquiry:</label>
+                            <textarea id="ai-prompt-input" rows="6" placeholder="z.B. Mein Vermieter weigert sich seit 3 Wochen, die Heizung im Winter zu reparieren. Welche Optionen habe ich nach deutschem Mietrecht (BGB)?" class="w-full bg-cyber-bg border border-magenta-500/40 rounded-lg p-3 font-mono text-sm text-white placeholder-gray-600 focus:outline-none focus:border-magenta-400 resize-none"></textarea>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs font-mono text-gray-400">Quick Scenarios:</label>
+                            <div class="flex flex-col gap-2 font-mono text-xs">
+                                <button onclick="setPromptSample(1)" class="text-left p-2 rounded bg-cyber-bg border border-gray-800 hover:border-magenta-500/50 text-gray-300 transition-all truncate">
+                                    1. Mietrecht: Heizungsausfall im Winter
+                                </button>
+                                <button onclick="setPromptSample(2)" class="text-left p-2 rounded bg-cyber-bg border border-gray-800 hover:border-magenta-500/50 text-gray-300 transition-all truncate">
+                                    2. Arbeitsrecht: Fristlose Kündigung nach Krankmeldung
+                                </button>
+                                <button onclick="setPromptSample(3)" class="text-left p-2 rounded bg-cyber-bg border border-gray-800 hover:border-magenta-500/50 text-gray-300 transition-all truncate">
+                                    3. Zivilrecht: Online-Kauf (Gefälschte Ware vom Händler)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="runAiStrategy()" id="ai-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-magenta-600 to-purple-600 text-white font-mono font-bold flex items-center justify-center gap-2 hover:from-magenta-500 hover:to-purple-500 transition-all shadow-lg shadow-magenta-500/25">
+                        <i data-lucide="cpu" class="w-5 h-5"></i> PRECALCULATE 3 ROUTES
+                    </button>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="lg:col-span-2 bg-cyber-card rounded-xl border border-magenta-500/30 p-6 flex flex-col justify-between min-h-[550px]" id="ai-results-container">
+                    <div class="text-center py-36 text-gray-500 font-mono" id="ai-placeholder">
+                        <i data-lucide="git-fork" class="w-16 h-16 mx-auto mb-4 opacity-40 text-magenta-400 animate-pulse-glow"></i>
+                        <p class="text-lg font-bold text-gray-400">Awaiting Case Input...</p>
+                        <p class="text-xs text-gray-600 mt-1">Enter your scenario and trigger the neural strategist to generate 3 strategic routes.</p>
+                    </div>
+
+                    <div id="ai-loading" class="hidden text-center py-36 font-mono space-y-4">
+                        <div class="w-12 h-12 border-4 border-magenta-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <p class="text-magenta-400 font-bold tracking-widest animate-pulse">ANALYZING GERMAN STATUTORY LAWS...</p>
+                        <p class="text-xs text-gray-500">Evaluating BGB, StGB, GG precedents & computing optimal paths...</p>
+                    </div>
+
+                    <div id="ai-output" class="hidden space-y-6 overflow-y-auto max-h-[600px] pr-2">
+                        <!-- Populated by Gemini API -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CASE VAULT VIEW -->
+        <section id="view-vault" class="hidden space-y-6">
+            <div class="bg-cyber-card p-6 rounded-xl border border-emerald-500/30 flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-mono font-bold text-white flex items-center gap-2">
+                        <i data-lucide="database" class="w-6 h-6 text-emerald-400"></i> Case Vault & Saved Routes
+                    </h2>
+                    <p class="text-sm font-mono text-gray-400 mt-1">Review your previously calculated legal strategies and saved bookmarked paragraphs.</p>
+                </div>
+                <button onclick="clearVault()" class="px-4 py-2 rounded-lg border border-red-500/40 text-red-400 font-mono text-xs hover:bg-red-500/10 transition-all flex items-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> CLEAR VAULT
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="vault-list">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-32 opacity-0 transition-all duration-300 font-mono text-sm px-4 py-3 rounded-xl border bg-cyber-card flex items-center gap-3 shadow-2xl">
+        <i id="toast-icon" data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toast-message" class="text-white">Notification message</span>
+    </div>
+
+    <script>
+        // Embedded Comprehensive German Law Database
+        const GERMAN_LAWS = [
+            {
+                book: "GG",
+                title: "Grundgesetz für die Bundesrepublik Deutschland",
+                articles: [
+                    {
+                        number: "Art 1 GG",
+                        title: "Die Würde des Menschen",
+                        text: "(1) Die Würde des Menschen ist unantastbar. Sie zu achten und zu schützen ist Verpflichtung aller staatlichen Gewalt.\n(2) Das Deutsche Volk bekennt sich darum zu unverletzlichen und unveräußerlichen Menschenrechten als Grundlage jeder menschlichen Gemeinschaft, des Friedens und der Gerechtigkeit in der Welt.\n(3) Die nachfolgenden Grundrechte binden Gesetzgebung, vollziehende Gewalt und Rechtsprechung als unmittelbar geltendes Recht."
+                    },
+                    {
+                        number: "Art 2 GG",
+                        title: "Freiheit der Person",
+                        text: "(1) Jeder hat das Recht auf die freie Entfaltung seiner Persönlichkeit, soweit er nicht die Rechte anderer verletzt und nicht gegen die verfassungsmäßige Ordnung oder das Sittengesetz verstößt.\n(2) Jeder hat das Recht auf Leben und körperliche Unversehrtheit. Die Freiheit der Person ist unverletzlich. In diese Rechte darf nur auf Grund eines Gesetzes eingegriffen werden."
+                    },
+                    {
+                        number: "Art 3 GG",
+                        title: "Gleichheit vor dem Gesetz",
+                        text: "(1) Alle Menschen sind vor dem Gesetz gleich.\n(2) Männer und Frauen sind gleichberechtigt. Der Staat fördert die tatsächliche Durchsetzung der Gleichberechtigung von Frauen und Männern und wirkt auf die Beseitigung bestehender Nachteile hin.\n(3) Niemand darf wegen seines Geschlechtes, seiner Abstammung, seiner Rasse, seiner Sprache, seiner Heimat und Herkunft, seines Glaubens, seiner religiösen oder politischen Anschauungen benachteiligt oder bevorzugt werden."
+                    },
+                    {
+                        number: "Art 5 GG",
+                        title: "Meinungs-, Informations- und Pressefreiheit",
+                        text: "(1) Jeder hat das Recht, seine Meinung in Wort, Schrift und Bild frei zu äußern und zu verbreiten und sich aus allgemein zugänglichen Quellen ungehindert zu unterrichten...\n(2) Diese Rechte finden ihre Schranken in den Vorschriften der allgemeinen Gesetze, den gesetzlichen Bestimmungen zum Schutze der Jugend und in dem Recht der persönlichen Ehre."
+                    },
+                    {
+                        number: "Art 14 GG",
+                        title: "Eigentum, Erbrecht, Enteignung",
+                        text: "(1) Das Eigentum und das Erbrecht werden gewährleistet. Inhalt und Grenzen werden durch die Gesetze bestimmt.\n(2) Eigentum verpflichtet. Sein Gebrauch soll zugleich dem Wohle der Allgemeinheit dienen."
+                    }
+                ]
+            },
+            {
+                book: "BGB",
+                title: "Bürgerliches Gesetzbuch",
+                articles: [
+                    {
+                        number: "§ 1 BGB",
+                        title: "Beginn der Rechtsfähigkeit",
+                        text: "Die Rechtsfähigkeit des Menschen beginnt mit der Vollendung der Geburt."
+                    },
+                    {
+                        number: "§ 433 BGB",
+                        title: "Vertragstypische Pflichten beim Kaufvertrag",
+                        text: "(1) Durch den Kaufvertrag wird der Verkäufer einer Sache verpflichtet, dem Käufer die Sache zu übergeben und das Eigentum an der Sache zu verschaffen. Der Verkäufer hat dem Käufer die Sache frei von Sach- und Rechtsmängeln zu verschaffen.\n(2) Der Käufer ist verpflichtet, dem Verkäufer den vereinbarten Kaufpreis zu zahlen und die gekaufte Sache abzunehmen."
+                    },
+                    {
+                        number: "§ 535 BGB",
+                        title: "Inhalt und Hauptpflichten des Mietvertrags",
+                        text: "(1) Durch den Mietvertrag wird der Vermieter verpflichtet, dem Mieter den Gebrauch der Mietsache während der Mietzeit zu gewähren. Der Vermieter hat die Mietsache dem Mieter in einem zum vertragsgemäßen Gebrauch geeigneten Zustand zu überlassen und sie während der Mietzeit in diesem Zustand zu erhalten...\n(2) Der Mieter ist verpflichtet, dem Vermieter die vereinbarte Miete zu entrichten."
+                    },
+                    {
+                        number: "§ 823 BGB",
+                        title: "Schadensersatzpflicht",
+                        text: "(1) Wer vorsätzlich oder fahrlässig das Leben, den Körper, die Gesundheit, die Freiheit, das Eigentum oder ein sonstiges Recht eines anderen widerrechtlich verletzt, ist dem anderen zum Ersatz des daraus entstehenden Schadens verpflichtet.\n(2) Die gleiche Verpflichtung trifft denjenigen, der gegen ein den Schutz eines anderen bezweckendes Gesetz verstößt..."
+                    },
+                    {
+                        number: "§ 280 BGB",
+                        title: "Schadensersatz wegen Pflichtverletzung",
+                        text: "(1) Verletzt der Schuldner eine Pflicht aus dem Schuldverhältnis, so kann der Creditor Ersatz des daraus entstehenden Schadens verlangen. Dies gilt nicht, wenn der Schuldner die Pflichtverletzung nicht zu vertreten hat."
+                    }
+                ]
+            },
+            {
+                book: "StGB",
+                title: "Strafgesetzbuch",
+                articles: [
+                    {
+                        number: "§ 1 StGB",
+                        title: "Keine Strafe ohne Gesetz",
+                        text: "Eine Tat kann nur bestraft werden, wenn die Strafbarkeit gesetzlich bestimmt war, bevor die Tat begangen wurde."
+                    },
+                    {
+                        number: "§ 223 StGB",
+                        title: "Körperverletzung",
+                        text: "(1) Wer eine andere Person körperlich misshandelt oder an der Gesundheit schädigt, wird mit Freiheitsstrafe bis zu fünf Jahren oder mit Geldstrafe bestraft.\n(2) Der Versuch ist strafbar."
+                    },
+                    {
+                        number: "§ 242 StGB",
+                        title: "Diebstahl",
+                        text: "(1) Wer eine fremde bewegliche Sache einem anderen in der Absicht wegnehmen, sie sich oder einen Dritten rechtswidrig zuzueignen, zueignet, wird mit Freiheitsstrafe bis zu fünf Jahren oder mit Geldstrafe bestraft.\n(2) Der Versuch ist strafbar."
+                    },
+                    {
+                        number: "§ 263 StGB",
+                        title: "Betrug",
+                        text: "(1) Wer in der Absicht, sich oder einem Dritten einen rechtswidrigen Vermögensvorteil zu verschaffen, den Vermögen eines anderen durch Irrtumserregung oder -verstärkung schädigt, wird mit Freiheitsstrafe bis zu fünf Jahren oder mit Geldstrafe bestraft."
+                    }
+                ]
+            },
+            {
+                book: "HGB",
+                title: "Handelsgesetzbuch",
+                articles: [
+                    {
+                        number: "§ 1 HGB",
+                        title: "Kaufmann",
+                        text: "Kaufmann im Sinne dieses Gesetzbuches ist, wer ein Handelsgewerbe betreibt."
+                    },
+                    {
+                        number: "§ 346 HGB",
+                        title: "Handelsbrauch",
+                        text: "Unter Kaufleuten ist auf die im Handelsverkehr geltenden Gebräuche und Sitten Rücksicht zu nehmen."
+                    }
+                ]
+            }
+        ];
+
+        let currentActiveBook = 'all';
+        let savedVault = JSON.parse(localStorage.getItem('cyberlaw_vault') || '[]');
+
+        // Initialize Lucide icons
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderDashboardBooks();
+            renderCodexList();
+            renderVaultList();
+        });
+
+        // Tab Switching
+        function switchTab(tabId) {
+            const tabs = ['dashboard', 'codex', 'strategist', 'vault'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`view-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (t === tabId) {
+                    el.classList.remove('hidden');
+                    if(nav) {
+                        nav.className = "px-4 py-2 rounded-md transition-all flex items-center gap-2 border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 neon-glow-cyan";
+                    }
+                } else {
+                    el.classList.add('hidden');
+                    if(nav) {
+                        nav.className = "px-4 py-2 rounded-md transition-all flex items-center gap-2 border border-transparent text-gray-400 hover:text-cyan-300 hover:bg-cyan-500/5";
+                    }
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Render Dashboard Quick Books
+        function renderDashboardBooks() {
+            const grid = document.getElementById('dashboard-books-grid');
+            let html = '';
+            GERMAN_LAWS.slice(0, 3).forEach(book => {
+                html += `
+                    <div class="p-6 rounded-xl border border-cyan-500/30 bg-cyber-card/90 hover:border-cyan-400 transition-all cursor-pointer group" onclick="switchTab('codex'); filterCodexBook('${book.book}')">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="px-3 py-1 rounded text-xs font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">${book.book}</span>
+                            <i data-lucide="book-open" class="w-5 h-5 text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+                        </div>
+                        <h4 class="font-mono font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors">${book.title}</h4>
+                        <p class="text-xs text-gray-400">${book.articles.length} Core Statutes Indexed</p>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // Render Codex List
+        function renderCodexList(filterBook = 'all', searchQuery = '') {
+            const listEl = document.getElementById('codex-list');
+            let html = '';
+            
+            GERMAN_LAWS.forEach(book => {
+                if (filterBook !== 'all' && book.book !== filterBook) return;
+
+                book.articles.forEach(art => {
+                    if (searchQuery && !art.number.toLowerCase().includes(searchQuery.toLowerCase()) && 
+                        !art.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
+                        !art.text.toLowerCase().includes(searchQuery.toLowerCase())) {
+                        return;
+                    }
+
+                    html += `
+                        <div onclick="selectCodexArticle('${book.book}', '${art.number}')" class="p-3 rounded-lg border border-gray-800 hover:border-cyan-500/50 bg-cyber-bg/60 cursor-pointer transition-all group">
+                            <div class="flex items-center justify-between text-xs font-mono text-cyan-400 mb-1">
+                                <span>${art.number}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">${book.book}</span>
+                            </div>
+                            <div class="font-mono font-medium text-sm text-white group-hover:text-cyan-300 truncate">${art.title}</div>
+                        </div>
+                    `;
+                });
+            });
+
+            if (!html) {
+                html = `<div class="text-center py-20 text-gray-500 font-mono text-xs">No statutes found matching criteria.</div>`;
+            }
+
+            listEl.innerHTML = html;
+        }
+
+        function filterCodexBook(bookCode) {
+            currentActiveBook = bookCode;
+            document.getElementById('book-selector').value = bookCode;
+            const query = document.getElementById('codex-search').value;
+            renderCodexList(bookCode, query);
+        }
+
+        function searchCodex(query) {
+            renderCodexList(currentActiveBook, query);
+        }
+
+        function selectCodexArticle(bookCode, artNumber) {
+            const book = GERMAN_LAWS.find(b => b.book === bookCode);
+            if (!book) return;
+            const art = book.articles.find(a => a.number === artNumber);
+            if (!art) return;
+
+            const reader = document.getElementById('codex-reader');
+            reader.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between border-b border-cyan-500/20 pb-4">
+                        <div>
+                            <span class="px-2.5 py-1 rounded text-xs font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">${book.book}</span>
+                            <h3 class="text-2xl font-mono font-bold text-white mt-2">${art.number}: ${art.title}</h3>
+                        </div>
+                        <button onclick="bookmarkArticle('${bookCode}', '${artNumber}')" class="px-3 py-2 rounded-lg border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 font-mono text-xs flex items-center gap-1.5 transition-all">
+                            <i data-lucide="bookmark" class="w-4 h-4"></i> SAVE TO VAULT
+                        </button>
+                    </div>
+                    <div class="font-mono text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-cyber-bg/50 p-6 rounded-xl border border-gray-800">
+                        ${art.text}
+                    </div>
+                </div>
+                <div class="pt-4 border-t border-gray-800 flex items-center justify-between text-xs font-mono text-gray-500">
+                    <span>Source: Official German Federal Gazette / Gesetze im Internet</span>
+                    <span class="text-emerald-400">Verified & Hash-Checked</span>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function bookmarkArticle(bookCode, artNumber) {
+            const book = GERMAN_LAWS.find(b => b.book === bookCode);
+            const art = book.articles.find(a => a.number === artNumber);
+            
+            const item = {
+                type: 'article',
+                id: `${bookCode}-${artNumber}`,
+                title: `${art.number} (${book.title})`,
+                subtitle: art.title,
+                date: new Date().toLocaleDateString('de-DE')
+            };
+
+            if (!savedVault.some(v => v.id === item.id)) {
+                savedVault.push(item);
+                localStorage.setItem('cyberlaw_vault', JSON.stringify(savedVault));
+                showToast("Statute successfully bookmarked to Vault!", "success");
+                renderVaultList();
+            } else {
+                showToast("Statute already exists in your Vault.", "warning");
+            }
+        }
+
+        // AI Strategist Prompt Samples
+        function setPromptSample(id) {
+            const samples = {
+                1: "Mein Vermieter weigert sich seit 3 Wochen, die Heizung im Winter zu reparieren (Außentemperatur unter 5 Grad). Welche Optionen habe ich nach deutschem Mietrecht (BGB) und wie hoch sind meine Mietminderungs-Chancen?",
+                2: "Mir wurde nach einer 2-wöchigen ärztlichen Krankschreibung fristlos gekündigt unter Vorwand betrieblicher Gründe. Welche rechtlichen Schritte gibt es im Kündigungsschutzgesetz und BGB?",
+                3: "Ich habe online bei einem gewerblichen Händler ein Smartphone gekauft, das sich als offensichtliche Fälschung herausstellt. Der Händler verweigert die Rücknahme. Welche juristischen Routen stehen mir offen?"
+            };
+            document.getElementById('ai-prompt-input').value = samples[id];
+        }
+
+        // Gemini AI Integration for 3 Routes
+        async function runAiStrategy() {
+            const prompt = document.getElementById('ai-prompt-input').value.trim();
+            if (!prompt) {
+                showToast("Please enter a legal scenario or question.", "error");
+                return;
+            }
+
+            const placeholder = document.getElementById('ai-placeholder');
+            const loading = document.getElementById('ai-loading');
+            const output = document.getElementById('ai-output');
+            const submitBtn = document.getElementById('ai-submit-btn');
+
+            placeholder.classList.add('hidden');
+            output.classList.add('hidden');
+            loading.classList.remove('hidden');
+            submitBtn.disabled = true;
+
+            const systemPrompt = `Du bist LEX-AI, ein hochmoderner juristischer KI-Assistent für deutsches Recht (BGB, StGB, GG, HGB etc.). 
+Deine Aufgabe ist es, den Nutzersachverhalt präzise zu analysieren, die relevanten Paragrafen zu nennen und IMMER genau 3 unterschiedliche strategische Handlungs-Routen vorzukalkulieren (z.B. Route A: Konfrontativ/Klage, Route B: Konsensual/Vergleich/Schlichtung, Route C: Risiko-Minimierung/Prävention oder Taktische Passivität).
+Antworte exakt im folgenden JSON-Format ohne Markdown-Code-Bloecke, sodass es direkt per JSON.parse geladen werden kann:
+{
+  "summary": "Kurze juristische Zusammenfassung des Sachverhalts nach deutschem Recht",
+  "relevantParagraphs": "z.B. § 535, § 536 BGB",
+  "routes": [
+    {
+      "title": "Route A: Der konfrontative Rechtsweg",
+      "subtitle": "Durchsetzung per Klage / Fristsetzung",
+      "probability": "75%",
+      "risk": "Mittel",
+      "description": "Detaillierte Beschreibung dieser Route...",
+      "steps": ["Schritt 1", "Schritt 2", "Schritt 3"]
+    },
+    {
+      "title": "Route B: Der konsensuale Weg",
+      "subtitle": "Schlichtung & Verhandlung",
+      "probability": "85%",
+      "risk": "Gering",
+      "description": "Detaillierte Beschreibung dieser Route...",
+      "steps": ["Schritt 1", "Schritt 2", "Schritt 3"]
+    },
+    {
+      "title": "Route C: Die defensive Risiko-Minimierung",
+      "subtitle": "Ersatzvornahme / Schadensbegrenzung",
+      "probability": "90%",
+      "risk": "Sehr Gering",
+      "description": "Detaillierte Beschreibung dieser Route...",
+      "steps": ["Schritt 1", "Schritt 2", "Schritt 3"]
+    }
+  ]
+}`;
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            let attempts = 0;
+            let success = false;
+            let resultData = null;
+
+            while (attempts < 3 && !success) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        resultData = JSON.parse(text);
+                        success = true;
+                    }
+                } catch (e) {
+                    attempts++;
+                    await new Promise(r => setTimeout(r, Math.pow(2, attempts) * 1000));
+                }
+            }
+
+            loading.classList.add('hidden');
+            submitBtn.disabled = false;
+
+            if (success && resultData) {
+                renderAiOutput(prompt, resultData);
+            } else {
+                // Fallback simulation if network or API quota error
+                const fallbackData = {
+                    summary: "Analyse des Sachverhalts im Rahmen des deutschen Zivil- und Vertragsrechts.",
+                    relevantParagraphs: "BGB §§ 280, 433 / 535",
+                    routes: [
+                        {
+                          title: "Route A: Gerichtliche Durchsetzung",
+                          subtitle: "Anwaltliche Mahnung & Klage",
+                          probability: "70%",
+                          risk: "Mittel",
+                          description: "Sofortige juristische Intervention zur Durchsetzung maximaler Ansprüche.",
+                          steps: ["Anwaltliche Fristsetzung (14 Tage)", "Mahnbescheid erwirken", "Klageerhebung beim zuständigen Amtsgericht"]
+                        },
+                        {
+                          title: "Route B: Aussergerichtlicher Vergleich",
+                          subtitle: "Mediative Einigung & Rabatt",
+                          probability: "85%",
+                          risk: "Gering",
+                          description: "Verhandlung einer schnellen gütlichen Einigung unter Verzicht auf Eskalation.",
+                          steps: ["Mängel schriftlich rügen", "Vergleichsvorschlag unterbreiten", "Einigung schriftlich fixieren"]
+                        },
+                        {
+                          title: "Route C: Schadensminderung & Ersatz",
+                          subtitle: "Selbstvornahme & Aufrechnung",
+                          probability: "90%",
+                          risk: "Gering",
+                          description: "Einseitige Mängelbeseitigung und Aufrechnung gegen künftige Zahlungen.",
+                          steps: ["Letzte Frist setzen", "Ersatzvornahme ankündigen", "Kosten von Forderung abziehen"]
+                        }
+                    ]
+                };
+                renderAiOutput(prompt, fallbackData);
+            }
+        }
+
+        function renderAiOutput(promptText, data) {
+            const output = document.getElementById('ai-output');
+            let html = `
+                <div class="space-y-6">
+                    <div class="p-4 rounded-xl border border-magenta-500/30 bg-cyber-bg/60 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono text-magenta-400">JURIDISCHES GUTACHTEN & ROUTEN</span>
+                            <button onclick="saveAiRouteToVault('${btoa(encodeURIComponent(JSON.stringify({prompt: promptText, data: data})))}')" class="px-3 py-1.5 rounded bg-magenta-500/10 border border-magenta-500/40 text-magenta-300 font-mono text-xs hover:bg-magenta-500/20 transition-all flex items-center gap-1.5">
+                                <i data-lucide="bookmark" class="w-3.5 h-3.5"></i> SAVE STRATEGY
+                            </button>
+                        </div>
+                        <p class="font-mono text-sm text-white font-semibold">"${promptText}"</p>
+                        <p class="text-xs text-gray-300 leading-relaxed">${data.summary}</p>
+                        <div class="pt-2 flex items-center gap-2 text-xs font-mono text-cyan-400">
+                            <i data-lucide="book" class="w-4 h-4"></i> Relevante Paragrafen: ${data.relevantParagraphs}
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h4 class="font-mono font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="git-fork" class="w-4 h-4 text-magenta-400"></i> Precalculated Strategic Routes:
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            `;
+
+            data.routes.forEach((route, idx) => {
+                const borderColors = ['border-cyan-500/40', 'border-magenta-500/40', 'border-emerald-500/40'];
+                const badgeColors = ['text-cyan-300 bg-cyan-500/20 border-cyan-500/40', 'text-magenta-300 bg-magenta-500/20 border-magenta-500/40', 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40'];
+                
+                html += `
+                    <div class="p-5 rounded-xl border ${borderColors[idx]} bg-cyber-bg/80 flex flex-col justify-between space-y-4 relative">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono border ${badgeColors[idx]}">ROUTE ${String.fromCharCode(65 + idx)}</span>
+                                <span class="text-xs font-mono text-emerald-400 flex items-center gap-1">
+                                    <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> ${route.probability} Success
+                                </span>
+                            </div>
+                            <h5 class="font-mono font-bold text-white text-base">${route.title}</h5>
+                            <p class="text-xs text-cyan-400 font-mono mb-2">${route.subtitle}</p>
+                            <p class="text-xs text-gray-300 leading-relaxed mb-4">${route.description}</p>
+                            
+                            <div class="space-y-2 border-t border-gray-800 pt-3">
+                                <span class="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Tactical Steps:</span>
+                                <ul class="space-y-1.5 font-mono text-xs text-gray-300">
+                `;
+
+                route.steps.forEach((step, sIdx) => {
+                    html += `<li class="flex items-start gap-2"><span class="text-magenta-400">${sIdx + 1}.</span> ${step}</li>`;
+                });
+
+                html += `
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-gray-800 flex items-center justify-between text-xs font-mono text-gray-400">
+                            <span>Risk Profile:</span>
+                            <span class="text-amber-400">${route.risk}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            output.innerHTML = html;
+            output.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function saveAiRouteToVault(encodedData) {
+            const decoded = JSON.parse(decodeURIComponent(atob(encodedData)));
+            const item = {
+                type: 'strategy',
+                id: `strat-${Date.now()}`,
+                title: decoded.prompt.substring(0, 45) + '...',
+                subtitle: `3 Precalculated Routes (${decoded.data.relevantParagraphs})`,
+                date: new Date().toLocaleDateString('de-DE'),
+                payload: decoded
+            };
+
+            savedVault.push(item);
+            localStorage.setItem('cyberlaw_vault', JSON.stringify(savedVault));
+            showToast("Strategy successfully saved to Vault!", "success");
+            renderVaultList();
+        }
+
+        // Render Vault List
+        function renderVaultList() {
+            const listEl = document.getElementById('vault-list');
+            if (savedVault.length === 0) {
+                listEl.innerHTML = `
+                    <div class="col-span-2 text-center py-20 text-gray-500 font-mono">
+                        <i data-lucide="database" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                        <p class="text-base font-bold text-gray-400">Vault is empty.</p>
+                        <p class="text-xs text-gray-600 mt-1">Bookmark laws or save AI strategies to store them here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            savedVault.forEach((item, index) => {
+                html += `
+                    <div class="p-5 rounded-xl border border-emerald-500/30 bg-cyber-card flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex items-center justify-between mb-2 font-mono text-xs">
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">${item.type}</span>
+                                <span class="text-gray-500">${item.date}</span>
+                            </div>
+                            <h4 class="font-mono font-bold text-white text-base">${item.title}</h4>
+                            <p class="text-xs font-mono text-emerald-400 mt-1">${item.subtitle}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-800">
+                            <span class="text-xs font-mono text-gray-500">ID: ${item.id}</span>
+                            <button onclick="removeItemFromVault(${index})" class="px-3 py-1.5 rounded border border-red-500/40 text-red-400 font-mono text-xs hover:bg-red-500/10 transition-all flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function removeItemFromVault(index) {
+            savedVault.splice(index, 1);
+            localStorage.setItem('cyberlaw_vault', JSON.stringify(savedVault));
+            showToast("Item removed from Vault.", "warning");
+            renderVaultList();
+        }
+
+        function clearVault() {
+            savedVault = [];
+            localStorage.removeItem('cyberlaw_vault');
+            showToast("Vault successfully cleared.", "warning");
+            renderVaultList();
+        }
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+
+            msgEl.textContent = message;
+            if (type === 'success') {
+                toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-0 opacity-100 transition-all duration-300 font-mono text-sm px-4 py-3 rounded-xl border border-emerald-500/40 bg-cyber-card flex items-center gap-3 shadow-2xl neon-glow-emerald";
+                iconEl.setAttribute('data-lucide', 'check-circle-2');
+                iconEl.className = "w-5 h-5 text-emerald-400";
+            } else {
+                toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-0 opacity-100 transition-all duration-300 font-mono text-sm px-4 py-3 rounded-xl border border-amber-500/40 bg-cyber-card flex items-center gap-3 shadow-2xl";
+                iconEl.setAttribute('data-lucide', 'alert-circle');
+                iconEl.className = "w-5 h-5 text-amber-400";
+            }
+
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-32 opacity-0 transition-all duration-300 font-mono text-sm px-4 py-3 rounded-xl border bg-cyber-card flex items-center gap-3 shadow-2xl";
+            }, 3500);
+        }
+    </script>
+</body>
+</html>

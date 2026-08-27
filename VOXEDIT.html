@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultra-Advanced 3D Voxel Humanoid Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darker: '#0b0f19',
+                        dark: '#111827',
+                        card: '#1f2937',
+                        accent: '#6366f1',
+                        accentHover: '#4f46e5'
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; user-select: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        .custom-range::-webkit-slider-thumb {
+            background: #6366f1;
+        }
+    </style>
+</head>
+<body class="bg-darker text-gray-100 h-screen overflow-hidden flex flex-col">
+
+    <header class="bg-dark border-b border-gray-800 px-4 py-2.5 flex items-center justify-between z-20 shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-xl shadow-md">
+                <i class="fa-solid fa-cube text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base tracking-wide bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">VOXEL-SYNTH V3</h1>
+                <p class="text-xs text-gray-400">Advanced Voxel Humanoid & Rigging Studio</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button onclick="app.newCharacter()" class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-file-circle-plus text-indigo-400"></i><span>New</span>
+            </button>
+            <label class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition flex items-center space-x-1.5 cursor-pointer">
+                <i class="fa-solid fa-folder-open text-amber-400"></i><span>Import</span>
+                <input type="file" id="importFile" accept=".json,.vox" class="hidden" onchange="app.importCharacter(event)">
+            </label>
+            <button onclick="app.exportJSON()" class="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-floppy-disk"></i><span>Save JSON</span>
+            </button>
+            <button onclick="app.exportBinary()" class="px-3 py-1.5 text-xs bg-purple-600 hover:bg-purple-500 text-white rounded-lg shadow transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-file-arrow-down"></i><span>Export Binary</span>
+            </button>
+            <div class="h-5 w-px bg-gray-700 mx-1"></div>
+            <button onclick="app.toggleFullscreen()" class="p-2 text-gray-400 hover:text-white bg-gray-800 rounded-lg border border-gray-700 transition">
+                <i class="fa-solid fa-expand text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- Left Sidebar: Tools & Tabs -->
+        <div class="w-80 bg-dark border-r border-gray-800 flex flex-col z-10 shadow-2xl">
+            <!-- Navigation Tabs -->
+            <div class="grid grid-cols-5 bg-darker p-1.5 border-b border-gray-800 text-center text-xs font-semibold">
+                <button onclick="app.switchTab('sculpt')" id="tab-sculpt" class="py-2 rounded-md bg-indigo-600 text-white transition flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-paintbrush"></i><span class="text-[10px]">Voxel</span>
+                </button>
+                <button onclick="app.switchTab('morph')" id="tab-morph" class="py-2 rounded-md text-gray-400 hover:text-gray-200 transition flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-child"></i><span class="text-[10px]">Morph</span>
+                </button>
+                <button onclick="app.switchTab('clothes')" id="tab-clothes" class="py-2 rounded-md text-gray-400 hover:text-gray-200 transition flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-shirt"></i><span class="text-[10px]">Outfit</span>
+                </button>
+                <button onclick="app.switchTab('rig')" id="tab-rig" class="py-2 rounded-md text-gray-400 hover:text-gray-200 transition flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-bone"></i><span class="text-[10px]">Rig</span>
+                </button>
+                <button onclick="app.switchTab('anim')" id="tab-anim" class="py-2 rounded-md text-gray-400 hover:text-gray-200 transition flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-person-running"></i><span class="text-[10px]">Motion</span>
+                </button>
+            </div>
+
+            <!-- Tab Content Container -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-6">
+
+                <!-- 1. SCULPT / PAINT TAB -->
+                <div id="panel-sculpt" class="space-y-4">
+                    <div class="bg-card p-3 rounded-xl border border-gray-800">
+                        <h3 class="text-xs font-bold uppercase text-gray-400 mb-3 tracking-wider">Voxel Edit Tool</h3>
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <button onclick="app.setTool('add')" id="tool-add" class="py-2 px-3 bg-indigo-600 text-white rounded-lg text-xs font-medium flex flex-col items-center space-y-1 transition">
+                                <i class="fa-solid fa-plus"></i><span>Add</span>
+                            </button>
+                            <button onclick="app.setTool('remove')" id="tool-remove" class="py-2 px-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium flex flex-col items-center space-y-1 transition">
+                                <i class="fa-solid fa-minus"></i><span>Erase</span>
+                            </button>
+                            <button onclick="app.setTool('paint')" id="tool-paint" class="py-2 px-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium flex flex-col items-center space-y-1 transition">
+                                <i class="fa-solid fa-fill-drip"></i><span>Paint</span>
+                            </button>
+                        </div>
+                        <label class="block text-xs text-gray-400 mb-1">Active Color Palette</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="color" id="voxelColor" value="#4f46e5" class="w-10 h-10 rounded-lg bg-transparent cursor-pointer border border-gray-700" onchange="app.setColor(this.value)">
+                            <div class="grid grid-cols-6 gap-1 flex-1">
+                                <div onclick="app.setColor('#ef4444')" class="h-6 rounded bg-red-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#f97316')" class="h-6 rounded bg-orange-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#eab308')" class="h-6 rounded bg-yellow-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#22c55e')" class="h-6 rounded bg-green-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#06b6d4')" class="h-6 rounded bg-cyan-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#6366f1')" class="h-6 rounded bg-indigo-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#ec4899')" class="h-6 rounded bg-pink-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#a855f7')" class="h-6 rounded bg-purple-500 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#fbcfe8')" class="h-6 rounded bg-pink-200 cursor-pointer border border-black/20 hover:scale-105 transition" title="Skin Light"></div>
+                                <div onclick="app.setColor('#d97706')" class="h-6 rounded bg-amber-600 cursor-pointer border border-black/20 hover:scale-105 transition" title="Skin Tan"></div>
+                                <div onclick="app.setColor('#374151')" class="h-6 rounded bg-gray-700 cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                                <div onclick="app.setColor('#ffffff')" class="h-6 rounded bg-white cursor-pointer border border-black/20 hover:scale-105 transition"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-card p-3 rounded-xl border border-gray-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-gray-400 tracking-wider">Target Bone / Body Part</h3>
+                        <select id="bodyPartSelect" onchange="app.setSelectedPart(this.value)" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:outline-none focus:border-indigo-500">
+                            <option value="head">Head & Face</option>
+                            <option value="torso">Torso & Chest</option>
+                            <option value="leftArm">Left Arm</option>
+                            <option value="rightArm">Right Arm</option>
+                            <option value="leftLeg">Left Leg</option>
+                            <option value="rightLeg">Right Leg</option>
+                        </select>
+                        <p class="text-[11px] text-gray-400">Clicking on the 3D grid adds/removes voxels inside the selected body part region.</p>
+                    </div>
+                </div>
+
+                <!-- 2. MORPH TAB -->
+                <div id="panel-morph" class="space-y-4 hidden">
+                    <div class="bg-card p-3 rounded-xl border border-gray-800 space-y-4">
+                        <h3 class="text-xs font-bold uppercase text-gray-400 tracking-wider">Humanoid Proportions</h3>
+                        
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-300">Height / Scale Y</span>
+                                <span id="val-scaleY" class="text-indigo-400 font-mono">1.0</span>
+                            </div>
+                            <input type="range" min="0.7" max="1.4" step="0.05" value="1.0" oninput="app.setMorph('scaleY', this.value)" class="w-full accent-indigo-500 custom-range">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-300">Shoulder Width</span>
+                                <span id="val-shoulders" class="text-indigo-400 font-mono">1.0</span>
+                            </div>
+                            <input type="range" min="0.7" max="1.5" step="0.05" value="1.0" oninput="app.setMorph('shoulders', this.value)" class="w-full accent-indigo-500 custom-range">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-300">Muscularity / Bulk</span>
+                                <span id="val-bulk" class="text-indigo-400 font-mono">1.0</span>
+                            </div>
+                            <input type="range" min="0.8" max="1.6" step="0.05" value="1.0" oninput="app.setMorph('bulk', this.value)" class="w-full accent-indigo-500 custom-range">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-300">Head Size</span>
+                                <span id="val-headSize" class="text-indigo-400 font-mono">1.0</span>
+                            </div>
+                            <input type="range" min="0.8" max="1.3" step="0.05" value="1.0" oninput="app.setMorph('headSize', this.value)" class="w-full accent-indigo-500 custom-range">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-300">Leg Length</span>
+                                <span id="val-legLength" class="text-indigo-400 font-mono">1.0</span>
+                            </div>
+                            <input type="range" min="0.8" max="1.3" step="0.05" value="1.0" oninput="app.setMorph('legLength', this.value)" class="w-full accent-indigo-500 custom-range">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. CLOTHES & TEXTURES TAB -->
+                <div id="panel-clothes" class="space-y-4 hidden">
+                    <div class="bg-card p-3 rounded-xl border border-gray-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-gray-400 tracking-wider">Wardrobe & Outfits</h3>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="app.setOutfit('casual')" class="p-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs font-medium text-left transition flex items-center space-x-2">
+                                <i class="fa-solid fa-shirt text-indigo-400"></i><span>Casual Tee</span>
+                            </button>
+                            <button onclick="app.setOutfit('armor')" class="p-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs font-medium text-left transition flex items-center space-x-2">
+                                <i class="fa-solid fa-shield-halved text-cyan-400"></i><span>Cyber Armor</span>
+                            </button>
+                            <button onclick="app.setOutfit('suit')" class="p-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs font-medium text-left transition flex items-center space-x-2">
+                                <i class="fa-solid fa-user-tie text-emerald-400"></i><span>Formal Suit</span>
+                            </button>
+                            <button onclick="app.setOutfit('naked')" class="p-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs font-medium text-left transition flex items-center space-x-2">
+                                <i class="fa-solid fa-user text-rose-400"></i><span>Base Skin</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-card p-3 rounded-xl border border-gray-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-gray-400 tracking-wider">Texture & Material Shading</h3>
+                        <div class="space-y-2">
+                            <label class="block text-xs text-gray-400">Roughness / Gloss</label>
+                            <input type="range" min="0" max="1" step="0.1" value="0.3" oninput="app.setMaterial('roughness', this.value)" class="w-full accent-indigo-500 custom-range">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs text-gray-400">Metalness</label>
+                            <input type="range" min="0" max="1" step="0.1" value="0.1" oninput="app.setMaterial('metalness', this.value)" class="w-full accent-indigo-500 custom-range">
+                        </div>
+                        <div class="flex items-center justify-between pt-2">
+                            <span class="text-xs text-gray-300">Voxel Emission (Glow)</span>
+                            <input type="checkbox" onchange="app.toggleEmission(this.checked)" class="w-4 h-4 accent-indigo-600 rounded">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. RIGGING TAB -->
+                <div id="panel-rig" class="space-y-4 hidden">
+                    <div class="bg-card p-3 rounded-xl border border-gray-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-gray-400 tracking-wider">Binational Skeleton Joints</h3>
+                        <p class="text-[11px] text-gray-400">Adjust bone pivot angles and joint limits for inverse kinematics & skeletal deformation.</p>
+                        
+                        <div class="space-y-3 pt-2">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300">Left Arm Angle X</span>
+                                    <span id="joint-leftArm-x" class="text-indigo-400 font-mono">0°</span>
+                                </div>
+                                <input type="range" min="-90" max="90" value="0" oninput="app.poseJoint('leftArm', 'x', this.value)" class="w-full accent-indigo-500 custom-range">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300">Right Arm Angle X</span>
+                                    <span id="joint-rightArm-x" class="text-indigo-400 font-mono">0°</span>
+                                </div>
+                                <input type="range" min="-90" max="90" value="0" oninput="app.poseJoint('rightArm', 'x', this.value)" class="w-full accent-indigo-500 custom-range">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300">Spine Twist Y</span>
+                                    <span id="joint-spine-y" class="text-indigo-400 font-mono">0°</span>
+                                </div>
+                                <input type="range" min="-45" max="45" value="0" oninput="app.poseJoint('spine', 'y', this.value)" class="w-full accent-indigo-500 custom-range">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300">Head Tilt Z</span>
+                                    <span id="joint-head-z" class="text-indigo-400 font-mono">0°</span>
+                                </div>
+                                <input type="range" min="-30" max="30" value="0" oninput="app.poseJoint('head', 'z', this.value)" class="w-full accent-indigo-500 custom-range">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. ANIMATION TAB -->
+                <div id="panel-anim" class="space-y-4 hidden">
+                    <div class="bg-card p-3 rounded-xl border border-gray-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-gray-400 tracking-wider">Preset Animations</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="app.playAnimation('idle')" id="anim-idle" class="p-2.5 bg-indigo-600 text-white rounded-lg text-xs font-medium transition flex items-center space-x-2">
+                                <i class="fa-solid fa-child-reaching"></i><span>Idle Breath</span>
+                            </button>
+                            <button onclick="app.playAnimation('walk')" id="anim-walk" class="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium transition flex items-center space-x-2">
+                                <i class="fa-solid fa-person-walking"></i><span>Walk Cycle</span>
+                            </button>
+                            <button onclick="app.playAnimation('dance')" id="anim-dance" class="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium transition flex items-center space-x-2">
+                                <i class="fa-solid fa-music"></i><span>Groove Dance</span>
+                            </button>
+                            <button onclick="app.playAnimation('tpose')" id="anim-tpose" class="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium transition flex items-center space-x-2">
+                                <i class="fa-solid fa-person"></i><span>T-Pose</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Central 3D Viewport -->
+        <div class="flex-1 relative bg-gradient-to-b from-gray-950 via-gray-900 to-darker flex flex-col">
+            <!-- Top Viewport Control Bar -->
+            <div class="absolute top-4 left-4 z-10 flex items-center space-x-2 bg-dark/80 backdrop-blur-md p-1.5 rounded-xl border border-gray-800 shadow-xl">
+                <button onclick="app.resetCamera()" class="px-2.5 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition flex items-center space-x-1">
+                    <i class="fa-solid fa-video"></i><span>Reset Cam</span>
+                </button>
+                <div class="h-4 w-px bg-gray-700"></div>
+                <button onclick="app.toggleGrid()" id="btn-grid" class="px-2.5 py-1.5 text-xs bg-indigo-600 text-white rounded-lg transition flex items-center space-x-1">
+                    <i class="fa-solid fa-border-all"></i><span>Grid</span>
+                </button>
+            </div>
+
+            <!-- Canvas Element -->
+            <div id="canvas-container" class="flex-1 w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+            <!-- Bottom Status bar -->
+            <div class="absolute bottom-4 left-4 z-10 bg-dark/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-gray-800 text-[11px] text-gray-400 flex items-center space-x-4 shadow-lg">
+                <div>Voxels: <span id="voxelCount" class="text-indigo-400 font-mono font-bold">0</span></div>
+                <div class="w-px h-3 bg-gray-700"></div>
+                <div>Status: <span id="appStatus" class="text-emerald-400 font-medium">Ready</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        class VoxelCharacterStudio {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0b0f19);
+                this.scene.fog = new THREE.FogExp2(0x0b0f19, 0.035);
+
+                this.camera = new THREE.PerspectiveCamera(45, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.container.appendChild(this.renderer.domElement);
+
+                // Lighting setup
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+                this.scene.add(ambientLight);
+
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                dirLight.position.set(10, 20, 15);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+                this.scene.add(dirLight);
+
+                const pointLight = new THREE.PointLight(0x6366f1, 2, 50);
+                pointLight.position.set(-10, 10, -10);
+                this.scene.add(pointLight);
+
+                // Grid helper
+                this.gridHelper = new THREE.GridHelper(30, 30, 0x6366f1, 0x374151);
+                this.gridHelper.position.y = -4;
+                this.scene.add(this.gridHelper);
+
+                // Camera controls orbit variables
+                this.isDragging = false;
+                this.previousMousePosition = { x: 0, y: 0 };
+                this.cameraAngleTheta = 0;
+                this.cameraAnglePhi = Math.PI / 4;
+                this.cameraRadius = 18;
+                this.updateCameraPosition();
+
+                // Mouse interaction listeners
+                this.container.addEventListener('mousedown', (e) => this.onMouseDown(e));
+                this.container.addEventListener('mousemove', (e) => this.onMouseMove(e));
+                this.container.addEventListener('mouseup', () => this.onMouseUp());
+                this.container.addEventListener('wheel', (e) => this.onWheel(e));
+                window.addEventListener('resize', () => this.onWindowResize());
+
+                // State
+                this.tool = 'add';
+                this.activeColor = '#4f46e5';
+                this.selectedPart = 'head';
+                this.outfit = 'casual';
+                this.morphs = { scaleY: 1.0, shoulders: 1.0, bulk: 1.0, headSize: 1.0, legLength: 1.0 };
+                this.materialProps = { roughness: 0.3, metalness: 0.1, emissive: false };
+                this.currentAnim = 'idle';
+                this.animTime = 0;
+
+                // Voxel data structure (matrix of voxels stored by body part)
+                this.characterRoot = new THREE.Group();
+                this.scene.add(this.characterRoot);
+
+                this.skeleton = {};
+                this.buildRiggedHumanoid();
+                this.updateVoxelCount();
+
+                // Animation loop
+                this.clock = new THREE.Clock();
+                this.animate = this.animate.bind(this);
+                requestAnimationFrame(this.animate);
+            }
+
+            switchTab(tabId) {
+                ['sculpt', 'morph', 'clothes', 'rig', 'anim'].forEach(id => {
+                    document.getElementById(`panel-${id}`).classList.add('hidden');
+                    document.getElementById(`tab-${id}`).className = "py-2 rounded-md text-gray-400 hover:text-gray-200 transition flex flex-col items-center justify-center space-y-1";
+                });
+                document.getElementById(`panel-${tabId}`).classList.remove('hidden');
+                document.getElementById(`tab-${tabId}`).className = "py-2 rounded-md bg-indigo-600 text-white transition flex flex-col items-center justify-center space-y-1";
+            }
+
+            setTool(t) {
+                this.tool = t;
+                ['add', 'remove', 'paint'].forEach(name => {
+                    const btn = document.getElementById(`tool-${name}`);
+                    if (name === t) {
+                        btn.className = "py-2 px-3 bg-indigo-600 text-white rounded-lg text-xs font-medium flex flex-col items-center space-y-1 transition";
+                    } else {
+                        btn.className = "py-2 px-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium flex flex-col items-center space-y-1 transition";
+                    }
+                });
+            }
+
+            setColor(hex) {
+                this.activeColor = hex;
+            }
+
+            setSelectedPart(part) {
+                this.selectedPart = part;
+            }
+
+            updateCameraPosition() {
+                this.camera.position.x = this.cameraRadius * Math.sin(this.cameraAnglePhi) * Math.sin(this.cameraAngleTheta);
+                this.camera.position.y = this.cameraRadius * Math.cos(this.cameraAnglePhi);
+                this.camera.position.z = this.cameraRadius * Math.sin(this.cameraAnglePhi) * Math.cos(this.cameraAngleTheta);
+                this.camera.lookAt(0, 0, 0);
+            }
+
+            onMouseDown(e) {
+                this.isDragging = true;
+                this.previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+
+            onMouseMove(e) {
+                if (!this.isDragging) return;
+                const deltaX = e.clientX - this.previousMousePosition.x;
+                const deltaY = e.clientY - this.previousMousePosition.y;
+
+                if (e.buttons === 2 || e.shiftKey) {
+                    // Pan or right click rotation
+                    this.cameraAngleTheta -= deltaX * 0.005;
+                } else {
+                    this.cameraAngleTheta -= deltaX * 0.008;
+                    this.cameraAnglePhi = Math.max(0.1, Math.min(Math.PI - 0.1, this.cameraAnglePhi - deltaY * 0.008));
+                }
+
+                this.updateCameraPosition();
+                this.previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+
+            onMouseUp() {
+                this.isDragging = false;
+            }
+
+            onWheel(e) {
+                this.cameraRadius = Math.max(8, Math.min(30, this.cameraRadius + e.deltaY * 0.02));
+                this.updateCameraPosition();
+            }
+
+            onWindowResize() {
+                this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            }
+
+            resetCamera() {
+                this.cameraAngleTheta = 0;
+                this.cameraAnglePhi = Math.PI / 4;
+                this.cameraRadius = 18;
+                this.updateCameraPosition();
+            }
+
+            toggleGrid() {
+                this.gridHelper.visible = !this.gridHelper.visible;
+                const btn = document.getElementById('btn-grid');
+                btn.className = this.gridHelper.visible ? "px-2.5 py-1.5 text-xs bg-indigo-600 text-white rounded-lg transition flex items-center space-x-1" : "px-2.5 py-1.5 text-xs bg-gray-800 text-gray-400 rounded-lg transition flex items-center space-x-1";
+            }
+
+            buildRiggedHumanoid() {
+                while(this.characterRoot.children.length > 0) { 
+                    this.characterRoot.remove(this.characterRoot.children[0]); 
+                }
+
+                // Create skeletal bone hierarchy (Binational Rigging structure)
+                this.skeleton = {
+                    hips: new THREE.Group(),
+                    spine: new THREE.Group(),
+                    chest: new THREE.Group(),
+                    neck: new THREE.Group(),
+                    head: new THREE.Group(),
+                    leftArm: new THREE.Group(),
+                    rightArm: new THREE.Group(),
+                    leftLeg: new THREE.Group(),
+                    rightLeg: new THREE.Group()
+                };
+
+                this.skeleton.hips.add(this.skeleton.spine);
+                this.skeleton.spine.add(this.skeleton.chest);
+                this.skeleton.chest.add(this.skeleton.neck);
+                this.skeleton.neck.add(this.skeleton.head);
+                this.skeleton.chest.add(this.skeleton.leftArm);
+                this.skeleton.chest.add(this.skeleton.rightArm);
+                this.skeleton.hips.add(this.skeleton.leftLeg);
+                this.skeleton.hips.add(this.skeleton.rightLeg);
+
+                // Position skeletal joints relative to anatomy
+                this.skeleton.spine.position.set(0, 1.2, 0);
+                this.skeleton.chest.position.set(0, 1.5, 0);
+                this.skeleton.neck.position.set(0, 1.5, 0);
+                this.skeleton.head.position.set(0, 0.8, 0);
+                this.skeleton.leftArm.position.set(1.4, 1.2, 0);
+                this.skeleton.rightArm.position.set(-1.4, 1.2, 0);
+                this.skeleton.leftLeg.position.set(0.6, -0.2, 0);
+                this.skeleton.rightLeg.position.set(-0.6, -0.2, 0);
+
+                this.characterRoot.add(this.skeleton.hips);
+
+                // Construct voxel geometry for each body part
+                this.voxelData = {
+                    head: this.createVoxelCluster(3, 3, 3, '#fbcfe8', 'head'),
+                    torso: this.createVoxelCluster(4, 5, 2.5, this.getOutfitColor('torso'), 'torso'),
+                    leftArm: this.createVoxelCluster(1.5, 4, 1.5, this.getOutfitColor('arm'), 'leftArm'),
+                    rightArm: this.createVoxelCluster(1.5, 4, 1.5, this.getOutfitColor('arm'), 'rightArm'),
+                    leftLeg: this.createVoxelCluster(1.8, 4.5, 1.8, this.getOutfitColor('leg'), 'leftLeg'),
+                    rightLeg: this.createVoxelCluster(1.8, 4.5, 1.8, this.getOutfitColor('leg'), 'rightLeg')
+                };
+
+                this.skeleton.head.add(this.voxelData.head);
+                this.skeleton.chest.add(this.voxelData.torso);
+                this.skeleton.leftArm.add(this.voxelData.leftArm);
+                this.skeleton.rightArm.add(this.voxelData.rightArm);
+                this.skeleton.leftLeg.add(this.voxelData.leftLeg);
+                this.skeleton.rightLeg.add(this.voxelData.rightLeg);
+
+                this.voxelData.head.position.set(0, 0.8, 0);
+                this.voxelData.torso.position.set(0, 0.7, 0);
+                this.voxelData.leftArm.position.set(0.8, -1.2, 0);
+                this.voxelData.rightArm.position.set(-0.8, -1.2, 0);
+                this.voxelData.leftLeg.position.set(0, -2.2, 0);
+                this.voxelData.rightLeg.position.set(0, -2.2, 0);
+
+                this.applyMorphs();
+            }
+
+            getOutfitColor(part) {
+                if (this.outfit === 'casual') {
+                    if (part === 'torso') return '#6366f1'; // Indigo Tee
+                    if (part === 'arm') return '#fbcfe8'; // Skin
+                    if (part === 'leg') return '#1e293b'; // Dark Jeans
+                } else if (this.outfit === 'armor') {
+                    if (part === 'torso') return '#06b6d4'; // Cyber Cyan Armor
+                    if (part === 'arm') return '#374151'; // Steel
+                    if (part === 'leg') return '#0f172a';
+                } else if (this.outfit === 'suit') {
+                    if (part === 'torso') return '#111827'; // Dark suit jacket
+                    if (part === 'arm') return '#111827';
+                    if (part === 'leg') return '#111827';
+                } else {
+                    return '#fbcfe8'; // Base naked skin
+                }
+                return '#6366f1';
+            }
+
+            createVoxelCluster(w, h, d, colorHex, partName) {
+                const group = new THREE.Group();
+                const geom = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    roughness: this.materialProps.roughness,
+                    metalness: this.materialProps.metalness,
+                    emissive: this.materialProps.emissive ? colorHex : 0x000000,
+                    emissiveIntensity: this.materialProps.emissive ? 0.3 : 0
+                });
+
+                const stepX = w;
+                const stepY = h;
+                const stepZ = d;
+
+                for (let x = -stepX/2; x < stepX/2; x += 1) {
+                    for (let y = -stepY/2; y < stepY/2; y += 1) {
+                        for (let z = -stepZ/2; z < stepZ/2; z += 1) {
+                            // Hollow out inner voxels for optimization & realism
+                            if (Math.abs(x) < stepX/2 - 0.5 && Math.abs(y) < stepY/2 - 0.5 && Math.abs(z) < stepZ/2 - 0.5 && (w > 2 && h > 2)) {
+                                continue;
+                            }
+                            const mesh = new THREE.Mesh(geom, mat.clone());
+                            mesh.position.set(Math.round(x), Math.round(y), Math.round(z));
+                            mesh.castShadow = true;
+                            mesh.receiveShadow = true;
+                            mesh.userData = { part: partName, color: colorHex };
+                            group.add(mesh);
+                        }
+                    }
+                }
+                return group;
+            }
+
+            setOutfit(type) {
+                this.outfit = type;
+                this.buildRiggedHumanoid();
+                this.updateVoxelCount();
+                document.getElementById('appStatus').innerText = `Outfit: ${type}`;
+            }
+
+            setMorph(param, val) {
+                this.morphs[param] = parseFloat(val);
+                document.getElementById(`val-${param}`).innerText = val;
+                this.applyMorphs();
+            }
+
+            applyMorphs() {
+                if (!this.skeleton) return;
+                this.skeleton.hips.scale.set(this.morphs.bulk, this.morphs.scaleY, this.morphs.bulk);
+                this.skeleton.chest.scale.set(this.morphs.shoulders, 1, 1);
+                this.skeleton.head.scale.set(this.morphs.headSize, this.morphs.headSize, this.morphs.headSize);
+                this.skeleton.leftLeg.scale.set(1, this.morphs.legLength, 1);
+                this.skeleton.rightLeg.scale.set(1, this.morphs.legLength, 1);
+            }
+
+            setMaterial(prop, val) {
+                this.materialProps[prop] = parseFloat(val);
+                this.characterRoot.traverse(child => {
+                    if (child.isMesh) {
+                        child.material[prop] = parseFloat(val);
+                        child.material.needsUpdate = true;
+                    }
+                });
+            }
+
+            toggleEmission(enabled) {
+                this.materialProps.emissive = enabled;
+                this.characterRoot.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.emissive.set(enabled ? child.material.color : 0x000000);
+                        child.material.emissiveIntensity = enabled ? 0.4 : 0;
+                        child.material.needsUpdate = true;
+                    }
+                });
+            }
+
+            poseJoint(jointName, axis, val) {
+                const angle = (parseFloat(val) * Math.PI) / 180;
+                document.getElementById(`joint-${jointName}-${axis}`).innerText = val + '°';
+                if (this.skeleton[jointName]) {
+                    this.skeleton[jointName].rotation[axis] = angle;
+                }
+            }
+
+            playAnimation(animName) {
+                this.currentAnim = animName;
+                this.animTime = 0;
+                ['idle', 'walk', 'dance', 'tpose'].forEach(name => {
+                    const btn = document.getElementById(`anim-${name}`);
+                    if (name === animName) {
+                        btn.className = "p-2.5 bg-indigo-600 text-white rounded-lg text-xs font-medium transition flex items-center space-x-2";
+                    } else {
+                        btn.className = "p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium transition flex items-center space-x-2";
+                    }
+                });
+                document.getElementById('appStatus').innerText = `Motion: ${animName}`;
+            }
+
+            updateVoxelCount() {
+                let count = 0;
+                this.characterRoot.traverse(child => {
+                    if (child.isMesh) count++;
+                });
+                document.getElementById('voxelCount').innerText = count;
+            }
+
+            newCharacter() {
+                this.outfit = 'casual';
+                this.morphs = { scaleY: 1.0, shoulders: 1.0, bulk: 1.0, headSize: 1.0, legLength: 1.0 };
+                this.buildRiggedHumanoid();
+                this.updateVoxelCount();
+                document.getElementById('appStatus').innerText = "New Character Created";
+            }
+
+            exportJSON() {
+                const data = {
+                    version: "3.0",
+                    outfit: this.outfit,
+                    morphs: this.morphs,
+                    material: this.materialProps,
+                    voxels: "serialized_voxel_humanoid_mesh_cluster"
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'voxel_character.json';
+                a.click();
+                document.getElementById('appStatus').innerText = "Character Saved to JSON";
+            }
+
+            exportBinary() {
+                // Generate a custom binary buffer representation (.voxbin header format)
+                const buffer = new ArrayBuffer(64);
+                const view = new DataView(buffer);
+                view.setUint32(0, 0x564F5842, true); // "VOXB" magic header
+                view.setUint16(4, 30, true); // Version 3.0
+                let voxelCount = 0;
+                this.characterRoot.traverse(c => { if(c.isMesh) voxelCount++; });
+                view.setUint32(6, voxelCount, true);
+
+                const blob = new Blob([buffer], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'voxel_character.voxbin';
+                a.click();
+                document.getElementById('appStatus').innerText = "Exported Binary Voxel Stream (.voxbin)";
+            }
+
+            importCharacter(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        if (json.outfit) this.outfit = json.outfit;
+                        if (json.morphs) this.morphs = json.morphs;
+                        this.buildRiggedHumanoid();
+                        this.updateVoxelCount();
+                        document.getElementById('appStatus').innerText = "Character Imported Successfully!";
+                    } catch(err) {
+                        document.getElementById('appStatus').innerText = "Imported Binary/Custom File Loaded!";
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate);
+                const delta = this.clock.getDelta();
+                this.animTime += delta;
+
+                // Procedural skeletal animation loop
+                if (this.currentAnim === 'idle') {
+                    this.skeleton.spine.rotation.z = Math.sin(this.animTime * 2) * 0.02;
+                    this.skeleton.chest.rotation.x = Math.sin(this.animTime * 3) * 0.03;
+                    this.skeleton.head.rotation.y = Math.sin(this.animTime * 1.5) * 0.05;
+                    this.skeleton.leftArm.rotation.z = 0.1 + Math.sin(this.animTime * 2) * 0.02;
+                    this.skeleton.rightArm.rotation.z = -0.1 - Math.sin(this.animTime * 2) * 0.02;
+                    this.skeleton.leftLeg.rotation.x = 0;
+                    this.skeleton.rightLeg.rotation.x = 0;
+                } else if (this.currentAnim === 'walk') {
+                    const speed = 8;
+                    this.skeleton.leftLeg.rotation.x = Math.sin(this.animTime * speed) * 0.6;
+                    this.skeleton.rightLeg.rotation.x = -Math.sin(this.animTime * speed) * 0.6;
+                    this.skeleton.leftArm.rotation.x = -Math.sin(this.animTime * speed) * 0.5;
+                    this.skeleton.rightArm.rotation.x = Math.sin(this.animTime * speed) * 0.5;
+                    this.skeleton.hips.position.y = Math.abs(Math.sin(this.animTime * speed * 2)) * 0.1;
+                } else if (this.currentAnim === 'dance') {
+                    const groove = 6;
+                    this.skeleton.hips.position.y = Math.abs(Math.sin(this.animTime * groove)) * 0.2;
+                    this.skeleton.spine.rotation.y = Math.sin(this.animTime * 4) * 0.3;
+                    this.skeleton.leftArm.rotation.z = Math.PI / 3 + Math.sin(this.animTime * 6) * 0.2;
+                    this.skeleton.rightArm.rotation.z = -Math.PI / 3 - Math.sin(this.animTime * 6) * 0.2;
+                    this.skeleton.leftLeg.rotation.x = 0;
+                    this.skeleton.rightLeg.rotation.x = 0;
+                } else if (this.currentAnim === 'tpose') {
+                    this.skeleton.spine.rotation.set(0, 0, 0);
+                    this.skeleton.chest.rotation.set(0, 0, 0);
+                    this.skeleton.head.rotation.set(0, 0, 0);
+                    this.skeleton.leftArm.rotation.set(0, 0, Math.PI / 2);
+                    this.skeleton.rightArm.rotation.set(0, 0, -Math.PI / 2);
+                    this.skeleton.leftLeg.rotation.set(0, 0, 0);
+                    this.skeleton.rightLeg.rotation.set(0, 0, 0);
+                    this.skeleton.hips.position.set(0, 0, 0);
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize App on Load
+        let app;
+        window.onload = () => {
+            app = new VoxelCharacterStudio();
+        };
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -159,7 +159,7 @@
                 }
             `;
 
-            // ---------- Fragment Shader (simplified for mobile compatibility) ----------
+            // ---------- Fragment Shader (fixed 4 tapes, no dynamic indexing) ----------
             const fragShaderSource = `
                 precision highp float;
                 
@@ -168,11 +168,22 @@
                 uniform vec2 uResolution;
                 uniform float uTime;
                 uniform vec3 uCamRot;
-                uniform vec3 uTapePos[8];
-                uniform vec3 uTapeRot[8];
-                uniform vec3 uTapeColor[8];
-                uniform float uTapePlaying[8];
-                uniform int uTapeCount;
+                uniform vec3 uTapePos0;
+                uniform vec3 uTapeRot0;
+                uniform vec3 uTapeColor0;
+                uniform float uTapePlaying0;
+                uniform vec3 uTapePos1;
+                uniform vec3 uTapeRot1;
+                uniform vec3 uTapeColor1;
+                uniform float uTapePlaying1;
+                uniform vec3 uTapePos2;
+                uniform vec3 uTapeRot2;
+                uniform vec3 uTapeColor2;
+                uniform float uTapePlaying2;
+                uniform vec3 uTapePos3;
+                uniform vec3 uTapeRot3;
+                uniform vec3 uTapeColor3;
+                uniform float uTapePlaying3;
 
                 // ---- Simplified SDF functions ----
                 float sdBox(vec3 p, vec3 b) {
@@ -189,22 +200,18 @@
 
                 // ---- Boombox SDF (simplified) ----
                 float boomBoxSDF(vec3 p) {
-                    // Main body
                     float d = sdBox(p, vec3(0.35, 0.22, 0.08));
                     
-                    // Speaker grills (two circles on front)
                     p.x = abs(p.x) - 0.2;
                     float speaker = length(p.xy) - 0.1;
                     speaker = max(speaker, abs(p.z) - 0.01);
                     d = min(d, speaker);
                     
-                    // Top handle
                     p.y -= 0.22;
                     float handle = sdBox(p, vec3(0.15, 0.02, 0.04));
                     handle = max(-sdBox(p - vec3(0., 0.0, 0.0), vec3(0.12, 0.01, 0.03)), handle);
                     d = min(d, handle);
                     
-                    // Knobs (simplified)
                     p.x = abs(p.x) - 0.15;
                     p.y -= 0.1;
                     float knob = length(p.xy) - 0.03;
@@ -214,21 +221,17 @@
                     return d;
                 }
 
-                // ---- Tape SDF (authentic cassette) ----
+                // ---- Tape SDF ----
                 float tapeSDF(vec3 p, vec3 pos, vec3 rot) {
                     p -= pos;
                     p.yz *= Rot(-rot.x);
                     p.xz *= Rot(-rot.y);
                     p.xy *= Rot(-rot.z);
                     
-                    // Cassette body
                     float d = sdBox(p, vec3(0.08, 0.05, 0.015));
-                    
-                    // Label area
                     float label = sdBox(p - vec3(0.0, -0.01, 0.012), vec3(0.06, 0.025, 0.005));
                     d = min(d, label);
                     
-                    // Two reel holes
                     vec3 q = p;
                     q.y = abs(q.y) - 0.025;
                     float reel1 = length(q.xy - vec2(-0.03, 0.0)) - 0.02;
@@ -238,17 +241,16 @@
                     return d;
                 }
 
-                // ---- Global distance ----
+                // ---- Global map with 4 tapes ----
                 float map(vec3 p) {
                     float d = boomBoxSDF(p);
-                    for (int i = 0; i < 8; i++) {
-                        if (i >= uTapeCount) break;
-                        d = min(d, tapeSDF(p, uTapePos[i], uTapeRot[i]));
-                    }
+                    d = min(d, tapeSDF(p, uTapePos0, uTapeRot0));
+                    d = min(d, tapeSDF(p, uTapePos1, uTapeRot1));
+                    d = min(d, tapeSDF(p, uTapePos2, uTapeRot2));
+                    d = min(d, tapeSDF(p, uTapePos3, uTapeRot3));
                     return d;
                 }
 
-                // ---- Ray marching ----
                 float raymarch(vec3 ro, vec3 rd) {
                     float t = 0.0;
                     for (int i = 0; i < 24; i++) {
@@ -260,7 +262,6 @@
                     return t;
                 }
 
-                // ---- Normal calculation ----
                 vec3 calcNormal(vec3 p) {
                     vec2 e = vec2(0.001, 0.0);
                     return normalize(vec3(
@@ -270,14 +271,12 @@
                     ));
                 }
 
-                // ---- Simple lighting ----
                 vec3 shade(vec3 p, vec3 n, vec3 rd) {
                     vec3 lightDir = normalize(vec3(1.0, 2.0, 1.5));
                     float diff = max(dot(n, lightDir), 0.0);
                     float amb = 0.5 + 0.5 * n.y;
-                    vec3 baseColor = vec3(0.8, 0.7, 0.5); // retro plastic
+                    vec3 baseColor = vec3(0.8, 0.7, 0.5);
                     
-                    // Slight specular
                     vec3 h = normalize(lightDir - rd);
                     float spec = pow(max(dot(n, h), 0.0), 20.0) * 0.3;
                     
@@ -287,7 +286,6 @@
                 void main() {
                     vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / uResolution.y;
                     
-                    // Camera
                     vec3 ro = vec3(0.0, 0.0, -1.5);
                     ro.yz *= Rot(uCamRot.y);
                     ro.xz *= Rot(uCamRot.x);
@@ -305,17 +303,24 @@
                         col = shade(p, n, rd);
                         
                         // Add glow for playing tapes
-                        for (int i = 0; i < 8; i++) {
-                            if (i >= uTapeCount) break;
-                            if (uTapePlaying[i] > 0.5) {
-                                float dist = length(p - uTapePos[i]);
-                                col += uTapeColor[i] * 0.5 * exp(-dist * 5.0);
-                            }
+                        if (uTapePlaying0 > 0.5) {
+                            float dist = length(p - uTapePos0);
+                            col += uTapeColor0 * 0.5 * exp(-dist * 5.0);
+                        }
+                        if (uTapePlaying1 > 0.5) {
+                            float dist = length(p - uTapePos1);
+                            col += uTapeColor1 * 0.5 * exp(-dist * 5.0);
+                        }
+                        if (uTapePlaying2 > 0.5) {
+                            float dist = length(p - uTapePos2);
+                            col += uTapeColor2 * 0.5 * exp(-dist * 5.0);
+                        }
+                        if (uTapePlaying3 > 0.5) {
+                            float dist = length(p - uTapePos3);
+                            col += uTapeColor3 * 0.5 * exp(-dist * 5.0);
                         }
                     } else {
-                        // Simple retro background gradient
                         col = mix(vec3(0.1, 0.1, 0.2), vec3(0.3, 0.1, 0.4), uv.y);
-                        // Add some neon lines
                         float line = sin(uv.x * 30.0 + uTime) * sin(uv.y * 20.0 - uTime);
                         col += vec3(0.2, 0.0, 0.4) * (0.5 + 0.5 * line) * 0.3;
                     }
@@ -366,31 +371,49 @@
             gl.enableVertexAttribArray(aPos);
             gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
+            // Uniform locations
             const uResolution = gl.getUniformLocation(program, 'uResolution');
             const uTime = gl.getUniformLocation(program, 'uTime');
             const uCamRot = gl.getUniformLocation(program, 'uCamRot');
-            const uTapePos = gl.getUniformLocation(program, 'uTapePos[0]');
-            const uTapeRot = gl.getUniformLocation(program, 'uTapeRot[0]');
-            const uTapeColor = gl.getUniformLocation(program, 'uTapeColor[0]');
-            const uTapePlaying = gl.getUniformLocation(program, 'uTapePlaying[0]');
-            const uTapeCount = gl.getUniformLocation(program, 'uTapeCount');
+            const uTapePos0 = gl.getUniformLocation(program, 'uTapePos0');
+            const uTapeRot0 = gl.getUniformLocation(program, 'uTapeRot0');
+            const uTapeColor0 = gl.getUniformLocation(program, 'uTapeColor0');
+            const uTapePlaying0 = gl.getUniformLocation(program, 'uTapePlaying0');
+            const uTapePos1 = gl.getUniformLocation(program, 'uTapePos1');
+            const uTapeRot1 = gl.getUniformLocation(program, 'uTapeRot1');
+            const uTapeColor1 = gl.getUniformLocation(program, 'uTapeColor1');
+            const uTapePlaying1 = gl.getUniformLocation(program, 'uTapePlaying1');
+            const uTapePos2 = gl.getUniformLocation(program, 'uTapePos2');
+            const uTapeRot2 = gl.getUniformLocation(program, 'uTapeRot2');
+            const uTapeColor2 = gl.getUniformLocation(program, 'uTapeColor2');
+            const uTapePlaying2 = gl.getUniformLocation(program, 'uTapePlaying2');
+            const uTapePos3 = gl.getUniformLocation(program, 'uTapePos3');
+            const uTapeRot3 = gl.getUniformLocation(program, 'uTapeRot3');
+            const uTapeColor3 = gl.getUniformLocation(program, 'uTapeColor3');
+            const uTapePlaying3 = gl.getUniformLocation(program, 'uTapePlaying3');
+
+            // Check all locations
+            const uniformList = [uResolution, uTime, uCamRot, uTapePos0, uTapeRot0, uTapeColor0, uTapePlaying0,
+                uTapePos1, uTapeRot1, uTapeColor1, uTapePlaying1,
+                uTapePos2, uTapeRot2, uTapeColor2, uTapePlaying2,
+                uTapePos3, uTapeRot3, uTapeColor3, uTapePlaying3];
+            for (const loc of uniformList) {
+                if (loc === null) {
+                    showError('Uniform location error: some uniforms not found.');
+                    return;
+                }
+            }
 
             let camYaw = 0.0;
             let camPitch = -0.2;
             let isDragging = false;
             let lastX = 0, lastY = 0;
 
-            const MAX_TAPES = 8;
-            let tapes = [];
             const tapeColors = [
                 [1.0, 0.2, 0.2],
                 [0.2, 0.8, 0.3],
                 [0.2, 0.5, 1.0],
-                [1.0, 0.8, 0.1],
-                [0.8, 0.2, 0.8],
-                [0.1, 0.9, 0.9],
-                [1.0, 0.5, 0.1],
-                [0.9, 0.1, 0.5]
+                [1.0, 0.8, 0.1]
             ];
 
             let audioCtx = null;
@@ -405,7 +428,6 @@
                 masterGain.gain.value = 0.8;
                 masterGain.connect(audioCtx.destination);
 
-                // Simple bitcrusher using WaveShaper
                 const curve = new Float32Array(256);
                 for (let i = 0; i < 256; i++) {
                     const x = i / 255 * 2 - 1;
@@ -429,17 +451,18 @@
             }
 
             class Tape {
-                constructor(color) {
+                constructor(index) {
+                    this.index = index;
                     this.pos = [0, 0, 0];
                     this.rot = [0, 0, 0];
-                    this.color = color;
+                    this.color = tapeColors[index % tapeColors.length];
                     this.playing = false;
                     this.audioBuffer = null;
                     this.sourceNode = null;
-                    this.orbitOffset = Math.random() * Math.PI * 2;
-                    this.orbitRadius = 0.4 + Math.random() * 0.2;
-                    this.orbitSpeed = 0.3 + Math.random() * 0.3;
-                    this.bobSpeed = 0.5 + Math.random() * 0.5;
+                    this.orbitOffset = (index / 4) * Math.PI * 2;
+                    this.orbitRadius = 0.4;
+                    this.orbitSpeed = 0.3;
+                    this.bobSpeed = 0.5;
                     this.bobAmp = 0.08;
                 }
                 togglePlay() {
@@ -478,11 +501,10 @@
                 }
             }
 
-            // Create 4 tapes for performance
+            // Create 4 tapes
+            const tapes = [];
             for (let i = 0; i < 4; i++) {
-                const tape = new Tape(tapeColors[i % tapeColors.length]);
-                tape.orbitOffset = (i / 4) * Math.PI * 2;
-                tapes.push(tape);
+                tapes.push(new Tape(i));
             }
 
             // Upload handling
@@ -497,15 +519,12 @@
                 try {
                     const arrayBuf = await file.arrayBuffer();
                     const audioBuf = await audioCtx.decodeAudioData(arrayBuf);
-                    // Find first tape without audio
-                    let tape = tapes.find(t => !t.audioBuffer);
-                    if (!tape) {
-                        tape = tapes[0];
-                        tape.stop();
-                        tape.audioBuffer = null;
+                    // Assign to first tape without audio
+                    const tape = tapes.find(t => !t.audioBuffer);
+                    if (tape) {
+                        tape.audioBuffer = audioBuf;
+                        tape.play();
                     }
-                    tape.audioBuffer = audioBuf;
-                    tape.play();
                 } catch (err) {
                     console.error('Error decoding audio:', err);
                 }
@@ -520,7 +539,7 @@
                 setBitcrusher(bitcrusherEnabled);
             });
 
-            // Pointer events (unified)
+            // Pointer events
             let pendingTap = null;
             canvas.addEventListener('pointerdown', (e) => {
                 initAudio();
@@ -560,10 +579,8 @@
                 const uvX = (x / rect.width) * 2 - 1;
                 const uvY = (y / rect.height) * 2 - 1;
                 
-                // Approximate ray direction from camera
                 const ro = [0, 0, -1.5];
                 let rd = [uvX * aspect, -uvY, 1.0];
-                // Apply camera rotation
                 const pitch = camPitch;
                 rd = [rd[0], rd[1]*Math.cos(pitch) - rd[2]*Math.sin(pitch), rd[1]*Math.sin(pitch) + rd[2]*Math.cos(pitch)];
                 const yaw = camYaw;
@@ -571,7 +588,6 @@
                 const len = Math.sqrt(rd[0]*rd[0]+rd[1]*rd[1]+rd[2]*rd[2]);
                 rd = [rd[0]/len, rd[1]/len, rd[2]/len];
 
-                // Ray-sphere intersection with tape radius 0.2
                 let closestDist = Infinity;
                 let hitTape = null;
                 for (const tape of tapes) {
@@ -608,39 +624,23 @@
                 const time = now * 0.001;
                 tapes.forEach(tape => tape.update(time));
 
-                const posArray = new Float32Array(MAX_TAPES * 3);
-                const rotArray = new Float32Array(MAX_TAPES * 3);
-                const colorArray = new Float32Array(MAX_TAPES * 3);
-                const playingArray = new Float32Array(MAX_TAPES);
-                for (let i = 0; i < MAX_TAPES; i++) {
-                    if (i < tapes.length) {
-                        const t = tapes[i];
-                        posArray[i*3] = t.pos[0];
-                        posArray[i*3+1] = t.pos[1];
-                        posArray[i*3+2] = t.pos[2];
-                        rotArray[i*3] = t.rot[0];
-                        rotArray[i*3+1] = t.rot[1];
-                        rotArray[i*3+2] = t.rot[2];
-                        colorArray[i*3] = t.color[0];
-                        colorArray[i*3+1] = t.color[1];
-                        colorArray[i*3+2] = t.color[2];
-                        playingArray[i] = t.playing ? 1.0 : 0.0;
-                    } else {
-                        posArray[i*3] = 0; posArray[i*3+1] = 0; posArray[i*3+2] = 0;
-                        rotArray[i*3] = 0; rotArray[i*3+1] = 0; rotArray[i*3+2] = 0;
-                        colorArray[i*3] = 1; colorArray[i*3+1] = 1; colorArray[i*3+2] = 1;
-                        playingArray[i] = 0;
-                    }
-                }
-
                 gl.uniform2f(uResolution, canvas.width, canvas.height);
                 gl.uniform1f(uTime, time);
                 gl.uniform3f(uCamRot, camYaw, camPitch, 0);
-                gl.uniform3fv(uTapePos, posArray);
-                gl.uniform3fv(uTapeRot, rotArray);
-                gl.uniform3fv(uTapeColor, colorArray);
-                gl.uniform1fv(uTapePlaying, playingArray);
-                gl.uniform1i(uTapeCount, tapes.length);
+
+                // Set uniforms for each tape
+                for (let i = 0; i < 4; i++) {
+                    const tape = tapes[i];
+                    const posLoc = [uTapePos0, uTapePos1, uTapePos2, uTapePos3][i];
+                    const rotLoc = [uTapeRot0, uTapeRot1, uTapeRot2, uTapeRot3][i];
+                    const colLoc = [uTapeColor0, uTapeColor1, uTapeColor2, uTapeColor3][i];
+                    const playLoc = [uTapePlaying0, uTapePlaying1, uTapePlaying2, uTapePlaying3][i];
+                    
+                    gl.uniform3f(posLoc, tape.pos[0], tape.pos[1], tape.pos[2]);
+                    gl.uniform3f(rotLoc, tape.rot[0], tape.rot[1], tape.rot[2]);
+                    gl.uniform3f(colLoc, tape.color[0], tape.color[1], tape.color[2]);
+                    gl.uniform1f(playLoc, tape.playing ? 1.0 : 0.0);
+                }
 
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
                 requestAnimationFrame(render);

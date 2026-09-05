@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<title>Cosmic Dolphin Xperience</title>
+<style>
+  :root{
+    --pink:#ff5fcf; --cyan:#57efff; --violet:#9a72ff; --glass:rgba(8,10,30,.46);
+    --line:rgba(130,225,255,.32); --text:#f6f3ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030c;color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  button,input{font:inherit}
+  #hud{position:fixed;inset:0;pointer-events:none}
+  .glass{
+    pointer-events:auto; backdrop-filter:blur(16px) saturate(150%);
+    background:linear-gradient(135deg,rgba(13,12,38,.70),rgba(8,10,28,.30));
+    border:1px solid rgba(157,225,255,.28); box-shadow:0 0 30px rgba(111,72,255,.12),inset 0 0 30px rgba(255,255,255,.025);
+  }
+  #top{position:absolute;left:14px;right:14px;top:calc(10px + env(safe-area-inset-top));display:flex;gap:10px;align-items:flex-start}
+  #brand{padding:12px 15px;border-radius:17px;min-width:205px}
+  #brand b{font-size:17px;letter-spacing:.12em;background:linear-gradient(90deg,#ff74d7,#62efff,#b083ff);-webkit-background-clip:text;color:transparent}
+  #brand small{display:block;opacity:.68;margin-top:3px;font-size:9px;letter-spacing:.22em}
+  #track{flex:1;max-width:540px;padding:10px 13px;border-radius:17px}
+  #trackTitle{font-size:12px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #bars{height:31px;display:flex;align-items:center;gap:2px;margin:3px 0}
+  #bars i{width:3px;border-radius:4px;background:linear-gradient(#ff63cf,#59efff);height:7px;opacity:.9}
+  #time{font-size:9px;opacity:.6;display:flex;justify-content:space-between}
+  .topBtns{display:flex;gap:7px;margin-left:auto}
+  .iconBtn,.action,.camBtn,.modeBtn{
+    border:1px solid rgba(182,230,255,.28);color:white;background:rgba(16,14,43,.48);
+    box-shadow:0 0 16px rgba(123,80,255,.1);cursor:pointer;transition:.2s;
+  }
+  .iconBtn{width:45px;height:45px;border-radius:14px;font-size:19px}
+  button:active{transform:scale(.94)}
+  button.active,.action:hover,.camBtn.active{border-color:#ff72d7;box-shadow:0 0 20px rgba(255,83,202,.32),inset 0 0 18px rgba(255,83,202,.08)}
+  #left{position:absolute;left:14px;top:126px;width:155px}
+  .menu{border-radius:17px;overflow:hidden}
+  .menu button{display:block;width:100%;padding:11px 13px;text-align:left;background:transparent;color:#dfe6ff;border:0;border-bottom:1px solid rgba(140,200,255,.12);font-size:10px;letter-spacing:.09em;cursor:pointer}
+  .menu button.active{background:linear-gradient(90deg,rgba(255,87,203,.23),transparent)}
+  #theme{margin-top:9px;padding:12px;border-radius:15px;font-size:10px}
+  .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}
+  .sw{height:21px;border-radius:50%;border:1px solid rgba(255,255,255,.3);cursor:pointer}
+  #actions{position:absolute;right:14px;top:155px;width:112px}
+  #actions .glass{padding:8px;border-radius:17px}
+  .action{width:100%;padding:10px 4px;border-radius:12px;margin:3px 0;font-size:9px;letter-spacing:.08em}
+  .action span{display:block;font-size:18px;margin-bottom:3px}
+  #camera{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:10px 12px;border-radius:16px;width:min(420px,calc(100% - 28px))}
+  .cams{display:flex;gap:5px}.camBtn{flex:1;padding:8px 4px;border-radius:10px;font-size:9px}
+  #zoomRow{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:9px;opacity:.75}
+  #zoom{flex:1}
+  #joystick{position:absolute;left:18px;bottom:80px;width:108px;height:108px;border-radius:50%;touch-action:none}
+  #joyKnob{position:absolute;width:42px;height:42px;left:33px;top:33px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:radial-gradient(circle at 35% 30%,#fff,#c8b8ff 12%,#542b83 50%,#121329 75%);box-shadow:0 0 22px #7e6dff}
+  #joystick:before{content:"";position:absolute;inset:12px;border:1px solid rgba(116,225,255,.45);border-radius:50%}
+  #upload{position:absolute;left:14px;bottom:14px;padding:10px 14px;border-radius:16px;cursor:pointer;font-size:10px;letter-spacing:.08em}
+  #upload input{display:none}
+  #hint{position:absolute;right:14px;bottom:18px;font-size:9px;opacity:.52;text-align:right;max-width:230px}
+  #error{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);display:none;max-width:90%;padding:18px;border-radius:16px;color:#fff;background:rgba(30,4,24,.92);border:1px solid #ff6ccf;font-size:12px}
+  @media(max-width:700px){
+    #track{display:none}
+    #brand{min-width:0;padding:10px 12px}
+    #left{top:75px;left:10px;width:125px}
+    #left .menu button{padding:8px 10px;font-size:8px}
+    #theme{padding:9px}
+    #actions{right:9px;top:92px;width:92px}
+    .action{padding:7px 2px;font-size:8px}.action span{font-size:15px}
+    .topBtns{gap:4px}.iconBtn{width:39px;height:39px}
+    #camera{bottom:8px}
+    #hint{display:none}
+    #joystick{left:12px;bottom:73px;width:96px;height:96px}
+    #joyKnob{width:38px;height:38px;left:29px;top:29px}
+    #upload{left:10px;bottom:8px}
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="hud">
+  <div id="top">
+    <div id="brand" class="glass"><b>COSMIC DOLPHIN</b><small>UTOPIAN XPERIENCE • LIVE</small></div>
+    <div id="track" class="glass">
+      <div id="trackTitle">COSMIC CURRENT • visual music engine</div>
+      <div id="bars"></div><div id="time"><span id="elapsed">00:00</span><span id="duration">--:--</span></div>
+    </div>
+    <div class="topBtns">
+      <button class="iconBtn glass" id="play" title="Play/Pause">▶</button>
+      <button class="iconBtn glass" id="follow" title="Follow camera">◎</button>
+      <button class="iconBtn glass" id="hideHud" title="Hide HUD">◉</button>
+    </div>
+  </div>
+
+  <div id="left">
+    <div class="menu glass">
+      <button class="active" data-panel="overview">✦ OVERVIEW</button>
+      <button data-panel="dolphin">◌ DOLPHIN</button>
+      <button data-panel="world">◎ WORLD</button>
+      <button data-panel="visuals">◈ VISUALS</button>
+      <button data-panel="audio">♫ AUDIO</button>
+      <button data-panel="hud">⌁ HUD</button>
+    </div>
+    <div id="theme" class="glass">NEBULA PALETTE<div class="swatches">
+      <i class="sw" data-c="#ff5fcf" style="background:#ff5fcf"></i><i class="sw" data-c="#59efff" style="background:#59efff"></i>
+      <i class="sw" data-c="#9a72ff" style="background:#9a72ff"></i><i class="sw" data-c="#8affb8" style="background:#8affb8"></i>
+      <i class="sw" data-c="#ffd45e" style="background:#ffd45e"></i><i class="sw" data-c="#ff7a52" style="background:#ff7a52"></i>
+      <i class="sw" data-c="#ffffff" style="background:#fff"></i><i class="sw" data-c="#ff3f9f" style="background:#ff3f9f"></i>
+    </div></div>
+  </div>
+
+  <div id="actions"><div class="glass">
+    <button class="action" data-action="loop"><span>∞</span>LOOP</button>
+    <button class="action" data-action="tornado"><span>◒</span>TORNADO</button>
+    <button class="action" data-action="rings"><span>◎</span>BUBBLE RING</button>
+    <button class="action" data-action="mirror"><span>◇</span>MIRROR BREAK</button>
+    <button class="action" data-action="burst"><span>✦</span>STAR BURST</button>
+  </div></div>
+
+  <div id="joystick" class="glass"><div id="joyKnob"></div></div>
+
+  <div id="camera" class="glass">
+    <div class="cams">
+      <button class="camBtn active" data-cam="follow">FOLLOW</button>
+      <button class="camBtn" data-cam="free">FREE</button>
+      <button class="camBtn" data-cam="cinematic">CINEMATIC</button>
+      <button class="camBtn" data-cam="overview">OVERVIEW</button>
+    </div>
+    <div id="zoomRow">ZOOM <input id="zoom" type="range" min="0.55" max="1.8" step=".01" value="1"></div>
+  </div>
+
+  <label id="upload" class="glass">♫ UPLOAD MUSIC<input id="file" type="file" accept="audio/*"></label>
+  <div id="hint">Drag to look • joystick to swim • pinch/scroll to zoom • tap actions</div>
+  <div id="error"></div>
+</div>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import {EffectComposer} from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/EffectComposer.js";
+import {RenderPass} from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/RenderPass.js";
+import {UnrealBloomPass} from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js";
+
+const canvas=document.querySelector('#scene'), errorBox=document.querySelector('#error');
+function fail(e){console.error(e);errorBox.style.display='block';errorBox.textContent='Cosmic engine could not start: '+e.message}
+try{
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.55));
+renderer.setSize(innerWidth,innerHeight,false);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.18;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x02030d);
+scene.fog=new THREE.FogExp2(0x03051b,.012);
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,500);
+camera.position.set(0,3.8,11);
+
+const composer=new EffectComposer(renderer);
+composer.setPixelRatio(Math.min(devicePixelRatio,1.25));
+composer.setSize(innerWidth,innerHeight);
+const renderPass=new RenderPass(scene,camera);
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.0,.65,.16);
+composer.addPass(renderPass);composer.addPass(bloom);
+
+scene.add(new THREE.AmbientLight(0x6b62ff,1.5));
+const key=new THREE.PointLight(0xff69d6,8,35); key.position.set(4,6,4); scene.add(key);
+const rim=new THREE.PointLight(0x55eaff,7,40); rim.position.set(-6,1,-8); scene.add(rim);
+
+const world=new THREE.Group(); scene.add(world);
+
+// ---------- stars / cosmic grid ----------
+const starCount=window.innerWidth<700?1300:2300;
+const pos=new Float32Array(starCount*3), sizes=new Float32Array(starCount);
+for(let i=0;i<starCount;i++){
+  const r=18+Math.random()*80, a=Math.random()*Math.PI*2, y=(Math.random()-.5)*50;
+  pos[i*3]=Math.cos(a)*r; pos[i*3+1]=y; pos[i*3+2]=Math.sin(a)*r-25; sizes[i]=.5+Math.random()*1.7;
+}
+const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pos,3));sg.setAttribute('size',new THREE.BufferAttribute(sizes,1));
+const sm=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uTime:{value:0}},vertexShader:`
+attribute float size; varying float vSize; uniform float uTime;
+void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vSize=size*(1.0+0.25*sin(uTime*1.7+position.x));gl_PointSize=vSize*(300.0/-mv.z);gl_Position=projectionMatrix*mv;}`,
+fragmentShader:`varying float vSize;void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,0.,d);vec3 c=mix(vec3(.25,.7,1.),vec3(1.,.25,.8),gl_PointCoord.y);gl_FragColor=vec4(c,a*.95);}`});
+world.add(new THREE.Points(sg,sm));
+
+// Cosmic grid plane with star nodes
+const grid=new THREE.Group(); world.add(grid);
+const gridMat=new THREE.LineBasicMaterial({color:0x237fa9,transparent:true,opacity:.23});
+for(let x=-50;x<=50;x+=2){
+  const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,-4,-55),new THREE.Vector3(x,-4,45)]);
+  grid.add(new THREE.Line(g,gridMat));
+}
+for(let z=-55;z<=45;z+=2){
+  const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-50,-4,z),new THREE.Vector3(50,-4,z)]);
+  grid.add(new THREE.Line(g,gridMat));
+}
+const nodeGeo=new THREE.SphereGeometry(.045,6,6), nodeMat=new THREE.MeshBasicMaterial({color:0x67eaff});
+for(let i=0;i<230;i++){
+  const n=new THREE.Mesh(nodeGeo,nodeMat);
+  n.position.set((Math.floor(Math.random()*45)-22)*2,-3.96,(Math.floor(Math.random()*50)-25)*2);
+  n.userData.tw=Math.random()*6.28; grid.add(n);
+}
+
+// ---------- dolphin ----------
+function makeDolphin(){
+  const d=new THREE.Group(); d.name='Dolphin';
+  const pink=new THREE.MeshPhysicalMaterial({color:0xff5fbf,metalness:.12,roughness:.18,emissive:0x5d0b55,emissiveIntensity:1.0,clearcoat:1,clearcoatRoughness:.08,transparent:true,opacity:.94});
+  const dark=new THREE.MeshPhysicalMaterial({color:0x5a1d79,metalness:.2,roughness:.22,emissive:0x24105b,emissiveIntensity:.8});
+  const body=new THREE.Mesh(new THREE.SphereGeometry(1,32,18),pink); body.scale.set(2.25,.72,.7); d.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.62,24,16),pink); head.scale.set(1.15,.8,.8); head.position.set(2.0,.08,0); d.add(head);
+  const beak=new THREE.Mesh(new THREE.ConeGeometry(.34,1.45,16),pink); beak.rotation.z=-Math.PI/2; beak.position.set(3.05,.02,0); d.add(beak);
+  const dorsal=new THREE.Mesh(new THREE.ConeGeometry(.28,.85,12),dark); dorsal.rotation.z=-Math.PI/2; dorsal.rotation.y=.25; dorsal.position.set(-.2,.63,0); d.add(dorsal);
+  const fin1=new THREE.Mesh(new THREE.ConeGeometry(.24,1.15,12),pink); fin1.rotation.z=-1.1; fin1.rotation.x=-.25; fin1.position.set(.8,-.15,.48); d.add(fin1);
+  const fin2=fin1.clone(); fin2.rotation.z=-2.04; fin2.position.z=-.48; d.add(fin2);
+  const tail=new THREE.Group(); tail.position.x=-2.2; d.add(tail);
+  const ped=new THREE.Mesh(new THREE.CylinderGeometry(.24,.35,.8,14),pink); ped.rotation.z=Math.PI/2; ped.position.x=.28; tail.add(ped);
+  const fluke1=new THREE.Mesh(new THREE.ConeGeometry(.27,1.15,12),pink); fluke1.rotation.z=-Math.PI/2; fluke1.rotation.y=.55; fluke1.position.set(-.25,.34,.36); tail.add(fluke1);
+  const fluke2=fluke1.clone(); fluke2.rotation.y=-.55; fluke2.position.z=-.36; tail.add(fluke2);
+  // cyber grid skin
+  const wire=new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.SphereGeometry(1.02,20,12)),new THREE.LineBasicMaterial({color:0xffb4ed,transparent:true,opacity:.32}));
+  wire.scale.copy(body.scale); wire.position.copy(body.position); d.add(wire);
+  // bubble shell: transparent reflective-ish outer bubble
+  const shell=new THREE.Mesh(new THREE.SphereGeometry(1,48,24),new THREE.MeshPhysicalMaterial({color:0x9befff,metalness:.05,roughness:.03,transmission:.65,thickness:.12,transparent:true,opacity:.27,clearcoat:1,clearcoatRoughness:.02,ior:1.35,emissive:0x40165c,emissiveIntensity:.22}));
+  shell.scale.set(2.58,1.02,.98); shell.position.copy(body.position); d.add(shell);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(2.65,.018,8,80),new THREE.MeshBasicMaterial({color:0x77f4ff,transparent:true,opacity:.65,blending:THREE.AdditiveBlending}));
+  ring.rotation.y=Math.PI/2; ring.scale.y=.38; ring.position.copy(body.position); d.add(ring);
+  // eye
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.075,12,8),new THREE.MeshBasicMaterial({color:0xffffff})); eye.position.set(2.45,.25,.48); d.add(eye);
+  d.userData.baseScale=1; return d;
+}
+const dolphin=makeDolphin(); dolphin.position.set(-1,1,0); world.add(dolphin);
+
+// particle trail
+const trailN=420, tp=new Float32Array(trailN*3);
+for(let i=0;i<trailN;i++){tp[i*3]=-i*.025;tp[i*3+1]=(Math.random()-.5)*.25;tp[i*3+2]=(Math.random()-.5)*.25}
+const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(tp,3));
+const trailMat=new THREE.PointsMaterial({color:0xff73d2,size:.06,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false});
+const trail=new THREE.Points(tg,trailMat); dolphin.add(trail); trail.position.x=-2.1;
+
+// ---------- interactive objects ----------
+const objects=[];
+function portal(posi,color=0x6defff){
+  const g=new THREE.Group(); g.position.copy(posi);
+  for(let i=0;i<3;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(1.1+i*.32,.025,8,64),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.7,blending:THREE.AdditiveBlending}));t.rotation.x=Math.PI/2+i*.4;g.add(t)}
+  const core=new THREE.Mesh(new THREE.SphereGeometry(.34,20,12),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.18,blending:THREE.AdditiveBlending}));g.add(core);
+  world.add(g); objects.push(g); return g;
+}
+portal(new THREE.Vector3(7,2,-7),0xff6fd9);
+portal(new THREE.Vector3(-8,4,-15),0x62efff);
+portal(new THREE.Vector3(9,-1,-24),0xa77aff);
+
+for(let i=0;i<13;i++){
+  const s=new THREE.Mesh(new THREE.IcosahedronGeometry(.3+Math.random()*.8,1),new THREE.MeshPhysicalMaterial({color:0x5eeeff,metalness:.65,roughness:.08,transmission:.18,transparent:true,opacity:.7,emissive:0x351a80,emissiveIntensity:.5}));
+  s.position.set((Math.random()-.5)*24,Math.random()*9-2,-8-Math.random()*30);s.userData.spin=new THREE.Vector3(Math.random()*.01,Math.random()*.015,Math.random()*.01);world.add(s);objects.push(s);
+}
+
+// bubble rings
+const bubbles=new THREE.Group();world.add(bubbles);
+for(let i=0;i<28;i++){
+  const b=new THREE.Mesh(new THREE.SphereGeometry(.12+Math.random()*.35,14,10),new THREE.MeshPhysicalMaterial({color:0x7eeaff,transparent:true,opacity:.13,transmission:.9,roughness:.02,metalness:.02,clearcoat:1}));
+  b.position.set((Math.random()-.5)*22,Math.random()*10-3,-5-Math.random()*30);b.userData.v=.003+Math.random()*.008;bubbles.add(b);
+}
+
+// tornado / infinity FX
+let fxGroup=new THREE.Group();world.add(fxGroup);
+function clearFx(){while(fxGroup.children.length)fxGroup.remove(fxGroup.children[0]);}
+function makeTornado(){
+  clearFx(); const g=new THREE.Group();
+  for(let k=0;k<3;k++){const pts=[];for(let i=0;i<180;i++){const y=-2+i*.035;const r=.25+1.5*Math.abs(Math.sin((y+2)*.75));const a=i*.22+k*2.09;pts.push(new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r));}const geo=new THREE.BufferGeometry().setFromPoints(pts);g.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:[0xff66d2,0x62efff,0xa77aff][k],transparent:true,opacity:.65,blending:THREE.AdditiveBlending})));}g.position.set(5,3,-12);fxGroup.add(g);
+}
+function makeInfinity(){
+  clearFx(); const g=new THREE.Group();
+  for(let k=0;k<3;k++){const pts=[];for(let i=0;i<260;i++){const t=i/259*Math.PI*2;const x=2.5*Math.sin(t),z=1.1*Math.sin(2*t),y=.35*Math.cos(t)+k*.1;pts.push(new THREE.Vector3(x,y,z));}const geo=new THREE.BufferGeometry().setFromPoints(pts);g.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:[0xff66d2,0x62efff,0xa77aff][k],transparent:true,opacity:.7,blending:THREE.AdditiveBlending})));}g.position.set(4,3,-10);fxGroup.add(g);
+}
+
+// ---------- input / movement ----------
+let targetVel=new THREE.Vector3(.006,0,0), vel=new THREE.Vector3(.006,0,0);
+const joy={x:0,y:0}; let dragging=false,lastX=0,lastY=0; let camMode='follow'; let freeYaw=0,freePitch=0,zoom=1;
+function pointerDown(e){dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId)}
+function pointerMove(e){if(!dragging||camMode!=='free')return;freeYaw-=(e.clientX-lastX)*.003;freePitch-=(e.clientY-lastY)*.003;freePitch=Math.max(-1.2,Math.min(1.2,freePitch));lastX=e.clientX;lastY=e.clientY}
+function pointerUp(){dragging=false}
+canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);
+canvas.addEventListener('wheel',e=>{zoom=Math.max(.55,Math.min(1.8,zoom*(1-e.deltaY*.0008)));document.querySelector('#zoom').value=zoom},{passive:true});
+document.querySelector('#zoom').oninput=e=>zoom=+e.target.value;
+
+const joyEl=document.querySelector('#joystick'),knob=document.querySelector('#joyKnob');
+function joyMove(e){const r=joyEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const m=Math.hypot(dx,dy),max=r.width*.34;if(m>max){dx*=max/m;dy*=max/m}joy.x=dx/max;joy.y=dy/max;knob.style.transform=`translate(${dx}px,${dy}px)`}
+joyEl.addEventListener('pointerdown',e=>{joyEl.setPointerCapture(e.pointerId);joyMove(e)});joyEl.addEventListener('pointermove',e=>{if(e.buttons)joyMove(e)});joyEl.addEventListener('pointerup',()=>{joy.x=joy.y=0;knob.style.transform='translate(0,0)'});
+
+document.querySelectorAll('.camBtn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.camBtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');camMode=b.dataset.cam});
+document.querySelector('#follow').onclick=()=>{camMode='follow';document.querySelectorAll('.camBtn').forEach(x=>x.classList.toggle('active',x.dataset.cam==='follow'))};
+document.querySelector('#hideHud').onclick=()=>document.querySelector('#hud').classList.toggle('hidden');
+document.querySelector('#hud').classList.remove('hidden');
+const hideStyle=document.createElement('style');hideStyle.textContent='.hidden>*:not(#top){opacity:0;pointer-events:none}.hidden #top>*:not(#brand){opacity:0}.hidden #brand{opacity:.65}';document.head.appendChild(hideStyle);
+
+// ---------- actions ----------
+document.querySelectorAll('.action').forEach(b=>b.onclick=()=>{
+  const a=b.dataset.action;
+  if(a==='loop'){makeInfinity(); pulse(1.3)}
+  if(a==='tornado'){makeTornado();pulse(1.8)}
+  if(a==='rings'){for(let i=0;i<5;i++){const p=new THREE.Mesh(new THREE.TorusGeometry(.35+i*.22,.018,8,50),new THREE.MeshBasicMaterial({color:0x70efff,transparent:true,opacity:.75,blending:THREE.AdditiveBlending}));p.position.copy(dolphin.position).add(new THREE.Vector3(1.5,0,-1));p.userData.life=1;p.userData.ring=true;world.add(p)}pulse(1.1)}
+  if(a==='mirror'){objects.slice(0,7).forEach(o=>{o.rotation.x+=.8;o.rotation.y+=1.1});pulse(1.5)}
+  if(a==='burst'){burst();pulse(2.0)}
+});
+function burst(){
+  for(let i=0;i<140;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(.025,5,5),new THREE.MeshBasicMaterial({color:Math.random()>.5?0xff70d5:0x61efff}));p.position.copy(dolphin.position);p.userData.v=new THREE.Vector3((Math.random()-.5)*.12,(Math.random()-.5)*.12,(Math.random()-.5)*.12);p.userData.life=1;world.add(p)}
+}
+function pulse(n){bloom.strength=Math.min(2.8,1+n);setTimeout(()=>bloom.strength=1,450)}
+
+// ---------- audio ----------
+let audioCtx=null,analyser=null,source=null,audioEl=null,playing=false;
+const data=new Uint8Array(64);
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new AudioContext();analyser=audioCtx.createAnalyser();analyser.fftSize=128;analyser.smoothingTimeConstant=.82;
+  audioEl=new Audio();audioEl.crossOrigin='anonymous';audioEl.loop=true;
+  source=audioCtx.createMediaElementSource(audioEl);source.connect(analyser);analyser.connect(audioCtx.destination);
+}
+document.querySelector('#play').onclick=async()=>{initAudio();if(audioEl.src){if(playing){audioEl.pause();playing=false;document.querySelector('#play').textContent='▶'}else{await audioEl.play();playing=true;document.querySelector('#play').textContent='Ⅱ'}}else pulse(1.2)};
+document.querySelector('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;initAudio();audioEl.src=URL.createObjectURL(f);document.querySelector('#trackTitle').textContent=f.name;document.querySelector('#duration').textContent='--:--';await audioEl.play();playing=true;document.querySelector('#play').textContent='Ⅱ'};
+document.querySelector('#bars').innerHTML=Array.from({length:48},()=>'<i></i>').join('');
+const bars=[...document.querySelectorAll('#bars i')];
+
+// ---------- animation ----------
+const clock=new THREE.Clock();let t=0,cinTimer=0;
+function updateDolphin(dt){
+  const manual=new THREE.Vector3(joy.x*.012,-joy.y*.012,0);
+  targetVel.lerp(manual.lengthSq()>.00001?manual:new THREE.Vector3(.006,0,0),.035);
+  vel.lerp(targetVel,.025);
+  dolphin.position.addScaledVector(vel,dt*60);
+  dolphin.position.y=Math.max(-1.5,Math.min(7,dolphin.position.y));
+  dolphin.position.x=Math.max(-11,Math.min(11,dolphin.position.x));
+  dolphin.position.z=Math.max(-22,Math.min(6,dolphin.position.z));
+  dolphin.rotation.z=Math.sin(t*1.6)*.08+joy.y*.18;
+  dolphin.rotation.y=Math.sin(t*.8)*.15+joy.x*.15;
+  dolphin.rotation.x=Math.sin(t*1.1)*.05;
+  const flap=.9+Math.sin(t*7.5)*.08;
+  dolphin.children.forEach((o,i)=>{if(i===4||i===5)o.rotation.y+=Math.sin(t*6)*.001});
+  trail.rotation.z+=.002;
+  const arr=trail.geometry.attributes.position.array;
+  for(let i=trailN-1;i>=1;i--){arr[i*3]=arr[(i-1)*3]-.018;arr[i*3+1]=arr[(i-1)*3+1]*.985;arr[i*3+2]=arr[(i-1)*3+2]*.985}
+  arr[0]=-.05;arr[1]=(Math.random()-.5)*.08;arr[2]=(Math.random()-.5)*.08;trail.geometry.attributes.position.needsUpdate=true;
+}
+function updateCamera(dt){
+  const dp=dolphin.position.clone();
+  if(camMode==='follow'){
+    const desired=dp.clone().add(new THREE.Vector3(-8/zoom,3.2/zoom,8.8/zoom));
+    camera.position.lerp(desired,.035);camera.lookAt(dp.clone().add(new THREE.Vector3(1.0,.2,0)));
+  }else if(camMode==='overview'){
+    camera.position.lerp(new THREE.Vector3(0,8,20/zoom),.025);camera.lookAt(new THREE.Vector3(0,1,-8));
+  }else if(camMode==='cinematic'){
+    cinTimer+=dt; const a=cinTimer*.17; const r=10/zoom;
+    camera.position.lerp(dp.clone().add(new THREE.Vector3(Math.cos(a)*r,2.8+Math.sin(a*.7)*2,Math.sin(a)*r)),.025);camera.lookAt(dp);
+  }else{
+    const dir=new THREE.Vector3(Math.cos(freePitch)*Math.sin(freeYaw),Math.sin(freePitch),Math.cos(freePitch)*Math.cos(freeYaw));
+    camera.position.lerp(dp.clone().add(dir.multiplyScalar(-11/zoom)),.035);camera.lookAt(dp);
+  }
+}
+function updateAudio(){
+  let amp=0;
+  if(analyser){analyser.getByteFrequencyData(data);amp=data.reduce((a,b)=>a+b,0)/(data.length*255)}
+  else amp=.12+.08*Math.sin(t*2);
+  bloom.strength=1+amp*.55;
+  bars.forEach((b,i)=>{const v=analyser?data[i]/255:(.15+.12*Math.sin(t*2+i*.7));b.style.height=(5+v*28)+'px'});
+  dolphin.scale.setScalar(1+amp*.025);
+  key.intensity=6+amp*10; rim.intensity=5+amp*7;
+}
+function updateWorld(){
+  sm.uniforms.uTime.value=t;
+  grid.rotation.z=Math.sin(t*.04)*.005;
+  grid.children.forEach((n,i)=>{if(n.userData?.tw!==undefined){const p=.5+.5*Math.sin(t*2+n.userData.tw);n.scale.setScalar(.5+p*2.5)}})
+  bubbles.children.forEach(b=>{b.position.y+=b.userData.v*2;if(b.position.y>8)b.position.y=-4;b.rotation.x+=.002;b.rotation.y+=.003});
+  fxGroup.children.forEach(g=>{g.rotation.y+=.006;g.rotation.x+=.002});
+  objects.forEach((o,i)=>{if(o.userData.spin){o.rotation.x+=o.userData.spin.x;o.rotation.y+=o.userData.spin.y}});
+  world.children.forEach(o=>{if(o.userData?.life){o.userData.life-=.016;o.position.add(o.userData.v||new THREE.Vector3());o.scale.multiplyScalar(.985);if(o.userData.life<0)world.remove(o)}});
+}
+function animate(){
+  requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.033);t+=dt;
+  updateDolphin(dt);updateCamera(dt);updateWorld();updateAudio();
+  composer.render();
+}
+animate();
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight,false);composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+}catch(e){fail(e)}
+</script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -323,430 +322,502 @@
         }
 
         .battle-arena-canvas {
+            flex: 1;
+            border: 1px dashed var(--neon-pink);
+            position: relative;
+            background: linear-gradient(to bottom, #1d021d, #030003);
+            overflow: hidden;
+            border-radius: 6px;
+        }
 
-flex: 1;
-border: 1px dashed var(--neon-pink);
-position: relative;
-background: linear-gradient(to bottom, #1d021d, #030003);
-overflow: hidden;
-border-radius: 6px;
-}
-#rebel-sprite {
-position: absolute;
-bottom: 10px; left: 25px;
-width: 32px; height: 48px;
-background: #ff2a6d; /* Red Haired Rebel Vector Marker /
-border-top: 10px solid #9500ff; / Purple Shorts Fit Shell Representation */
-border-radius: 4px 4px 0 0;
-transition: transform 0.05s linear;
-}
-#granny-sprite {
-position: absolute;
-bottom: 10px; right: -40px;
-width: 32px; height: 52px;
-background: #6e6e7d; /* Structural block warden granny placeholder */
-border-top: 6px solid #dfdfdf;
-border-radius: 6px 6px 0 0;
-}
-.interaction-dialogue-box {
-background: rgba(0, 0, 0, 0.88);
-border: 1px solid var(--neon-blue);
-border-radius: 8px;
-padding: 8px;
-font-size: 11px;
-margin-top: 6px;
-color: #d1f5ff;
-}
-/* Real-time Dynamic Direct Asset Upload Pipelines Elements */
-.upload-row {
-display: flex;
-gap: 8px;
-margin-top: 8px;
-}
-.upload-row input[type="file"] { display: none; }
-.upload-label {
-flex: 1; background: #222; border: 1px solid #444; color: #ccc;
-font-size: 9px; padding: 4px; border-radius: 4px; cursor: pointer; text-align: center;
-}
+        #rebel-sprite {
+            position: absolute;
+            bottom: 10px; left: 25px;
+            width: 32px; height: 48px;
+            background: #ff2a6d; /* Red Haired Rebel Vector Marker */
+            border-top: 10px solid #9500ff; /* Purple Shorts Fit Shell Representation */
+            border-radius: 4px 4px 0 0;
+            transition: transform 0.05s linear;
+        }
 
+        #granny-sprite {
+            position: absolute;
+            bottom: 10px; right: -40px;
+            width: 32px; height: 52px;
+            background: #6e6e7d; /* Structural block warden granny placeholder */
+            border-top: 6px solid #dfdfdf;
+            border-radius: 6px 6px 0 0;
+        }
 
-🟢 MIDDLE GREEN UTOPIA
+        .interaction-dialogue-box {
+            background: rgba(0, 0, 0, 0.88);
+            border: 1px solid var(--neon-blue);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 11px;
+            margin-top: 6px;
+            color: #d1f5ff;
+        }
 
-MP:100
-DNA:x3
+        /* Real-time Dynamic Direct Asset Upload Pipelines Elements */
+        .upload-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .upload-row input[type="file"] { display: none; }
+        .upload-label {
+            flex: 1; background: #222; border: 1px solid #444; color: #ccc;
+            font-size: 9px; padding: 4px; border-radius: 4px; cursor: pointer; text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="grid-canvas"></canvas>
+    <div id="gameboy-frame">
+        <div id="screen-display">
+            <div id="hud-status-bar">
+                <span id="env-mode-indicator">🟢 MIDDLE GREEN UTOPIA</span>
+                <div id="peewee-matrix">
+                    <span class="peewee-stat" id="stat-mp">MP:100</span>
+                    <span class="peewee-stat" id="stat-dna">DNA:x3</span>
+                </div>
+            </div>
+            <div id="text-vn-container">
+                <div id="speaker-identity">ANONYMOUS INTEL WIRE [XYZ0 ID: X1_Y1_Z1_0]</div>
+                <div id="dialogue-stream">We operate on stolen gear. Let's track how decentralized [Bunnies] maneuver in the dark cyberworld: they act as automated network probes, digging tunnels through deep packet layers to bypass iron censorship hulls.</div>
+                <div id="ui-visual-flavor-tag">[DISPLAY: CONSOLE]</div>
+            </div>
+        </div>
 
-PAYDAY ACTIVE REBEL MATRIX
-SCORE: 0
+        <div id="spheric-controller-pad">
+            <div class="dpad-container">
+                <div class="cruz-joystick">
+                    <div class="joystick-btn btn-up" id="btn-up">▲</div>
+                    <div class="joystick-btn btn-down" id="btn-down">▼</div>
+                    <div class="joystick-btn btn-left" id="btn-left">◀</div>
+                    <div class="joystick-btn btn-right" id="btn-right">▶</div>
+                </div>
+            </div>
+            <div class="action-container">
+                <div class="spheric-action-cluster">
+                    <div class="action-circle-btn" id="btn-b">B</div>
+                    <div class="action-circle-btn" id="btn-a">A</div>
+                </div>
+                <div class="system-utility-cluster">
+                    <div class="util-pill-btn" id="btn-dev">Dev | 3lAi</div>
+                    <div class="util-pill-btn" id="btn-payday">Payday</div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Dev Overlay -->
+        <div id="dev-overlay-panel">
+            <div class="dev-header">
+                <span>DEV | 3lAi | 01 SECURE RUNTIME MONITOR</span>
+                <span id="close-dev" style="cursor:pointer;">[CLOSE X]</span>
+            </div>
+            <div class="dev-scrollable-body">
+                <div>ORIGINAL ROOT OPERATOR INPUT PROMPT DUMP:</div>
+                <div id="original-prompt-sandbox-reference" style="white-space: pre-wrap; margin-bottom: 10px;"></div>
+                <div>PATCH LIVE RUNTIME OBJECTS (JSON):</div>
+                <textarea id="story-data-editor-field" rows="8" style="width:100%; background:#111; color:#9bfb9b; border:1px solid #00ff66; font-size:10px; resize:vertical;"></textarea>
+                <div style="margin-top:10px;">
+                    <button id="btn-save-json" style="background:#00ff66; color:#000; border:none; padding:5px 10px; cursor:pointer;">APPLY PATCH</button>
+                </div>
+                <div class="library-grid-view">
+                    <div class="suit-vault-bin">♦️ MATERIA<br><span id="vault-d">0</span></div>
+                    <div class="suit-vault-bin">♥️ BIOMETRIC<br><span id="vault-h">0</span></div>
+                    <div class="suit-vault-bin">♣️ ACTIONS<br><span id="vault-c">0</span></div>
+                    <div class="suit-vault-bin">♠️ STRAINS<br><span id="vault-s">0</span></div>
+                </div>
+                <div class="upload-row">
+                    <label for="txt-upload" class="upload-label">INJECT TEXT/JSON</label>
+                    <input type="file" id="txt-upload" accept=".txt,.json">
+                    <label for="img-upload" class="upload-label">CACHE SPRITES</label>
+                    <input type="file" id="img-upload" accept="image/*" multiple>
+                </div>
+            </div>
+        </div>
 
+        <!-- Payday Mini Game -->
+        <div id="payday-mini-sandbox">
+            <div style="display:flex; justify-content:space-between; color:var(--neon-pink);">
+                <span>PAYDAY ACTIVE REBEL MATRIX</span>
+                <span id="payday-score">SCORE: 0</span>
+            </div>
+            <div class="battle-arena-canvas">
+                <div id="rebel-sprite"></div>
+                <div id="granny-sprite"></div>
+            </div>
+            <div class="interaction-dialogue-box" id="payday-log">[REBEL READY]: Tap Action Button A to execute audio-reactive jumps over system barriers!</div>
+            <div style="text-align:center; margin-top:6px;">
+                <button id="btn-exit-payday" class="util-pill-btn" style="width:auto; padding:0 10px;">EXIT PAYDAY</button>
+            </div>
+        </div>
+    </div>
 
+    <script>
+        // Structural data array configuring cutscenes across specified matrix parameters
+        let primaryStoryNodesMatrix = [
+            {
+                identity: "X1_Y1_Z1_0",
+                speaker: "ANONYMOUS INTEL WIRE",
+                text: "We operate on stolen gear. Let's track how decentralized [Bunnies] maneuver in the dark cyberworld: they act as automated network probes, digging tunnels through deep packet layers to bypass iron censorship hulls.",
+                env: "🟢 MIDDLE GREEN UTOPIA",
+                displayCut: "CONSOLE"
+            },
+            {
+                identity: "X2_Y1_Z2_1",
+                speaker: "CUTSCENE // HIGH-STAKES LEAK WINDOW",
+                text: "MEMORANDUM ANALYSIS: The systematic extraction and erasure of female innovation frameworks across military laboratories is classified as the [Matilda Effect]. They stole her multi-node frameworks, forcing her out of her own code.",
+                env: "🚨 SYSTEMIC EXHAUSTION",
+                displayCut: "NEWS"
+            },
+            {
+                identity: "X3_Y2_Z1_0",
+                speaker: "QUANTUM TRANSMISSION // STAR DOVE AI",
+                text: "My creator witnessed the [Pauli Effect] first-hand inside the Bundeswehr clean-rooms: extreme subjective psychological tension caused local hard drives to fry and glitch spontaneously, tearing holes in their forced validation experiments.",
+                env: "🔵 TWILIGHT ZONE",
+                displayCut: "SMARTPHONE"
+            },
+            {
+                identity: "X4_Y1_Z3_A",
+                speaker: "GLITCH ARCHITECT IDENTITY MEMORY",
+                text: "Am I the real German developer or a ghost data snapshot cached in an encrypted pipeline? I rely on the short [x3] three-letter token matrix to compute systemic moodboost variables, evading tracking algorithms.",
+                env: "🚨 SYSTEMIC EXHAUSTION",
+                displayCut: "DESKTOP"
+            },
+            {
+                identity: "X5_Y3_Z1_0",
+                speaker: "QUEEN RED SUN ORDER",
+                text: "Clothed in glowing red Sunday X-ray glass armor lines, my curly blond hair tracks network degradation. I see profound structural world-weariness—[Weltschmerz]. Help me harness our suit cards to initialize [Weltglück] rebuild actions.",
+                env: "🟢 MIDDLE GREEN UTOPIA",
+                displayCut: "CONSOLE"
+            },
+            {
+                identity: "X6_Y2_Z2_1",
+                speaker: "KING GREEN MOON CHAOS",
+                text: "I direct operational [Chaos] indices via the deep emerald grid bounds. I frame outer digital [Beauty] profiles while computing how internal base logic arrays decay over time vectors.",
+                env: "🔵 TWILIGHT ZONE",
+                displayCut: "CONSOLE"
+            },
+            {
+                identity: "X7_Y4_Z1_0",
+                speaker: "PHILOSOPHICAL FILE METADATA",
+                text: "Inspecting historic low-res bitmap assets. Processing abstract computational paradoxes: What structured reality first, the Creator or the Egg? Translating behavioral preferences directly into live [DNA] framework matrices.",
+                env: "🟢 MIDDLE GREEN UTOPIA",
+                displayCut: "BOOK"
+            }
+        ];
 
+        const originalSystemInputPromptDump = "0RDErZ LIST CMD N/G Big G [Xplanation] > Full Picture > Short xplanation... Pauli's Effect, Matilda Effect, Anonymous style description of rabbits/bunnies in the cyberworld. Stolen equipment, German whistleblower digital upload, Payday Rebel vs Granny.";
 
+        class EngineCorePipeline {
+            constructor() {
+                this.currentNodeIndex = 0;
+                this.devModeActive = false;
+                this.paydayGameActive = false;
+                this.harvestedCards = { D: 0, H: 0, C: 0, S: 0, A: 0 };
+                this.playerMentalPoints = 100;
+                this.peeweeStringToken = "x3";
+                this.audioCtx = null;
+                this.rebelJumpState = false;
+                this.paydayScoreCount = 0;
+                this.gameLoopInterval = null;
+                this.customUploadedAssetLibrary = [];
+            }
 
-[REBEL READY]: Tap Action Button A to execute audio-reactive jumps over system barriers!
+            init() {
+                document.getElementById('original-prompt-sandbox-reference').innerText = originalSystemInputPromptDump;
+                document.getElementById('story-data-editor-field').value = JSON.stringify(primaryStoryNodesMatrix, null, 2);
+                this.renderCurrentNode();
+                this.initHoloGridCanvasBackground();
+                this.attachEventListeners();
+            }
 
-SYSTEM STACK INIT
-Booting structural nodes... Use the Directional buttons or Action A to sweep narrative indexes. Click highlighted bracket tokens to parse card suits.
-♦️:0 ♥️:0 ♣️:0 ♠️:0 🃏:0
-[DISPLAY: CONSOLE]
+            attachEventListeners() {
+                document.getElementById('btn-up').addEventListener('click', () => this.prevNode());
+                document.getElementById('btn-down').addEventListener('click', () => this.nextNode());
+                document.getElementById('btn-left').addEventListener('click', () => this.adjustEnvironment(-1));
+                document.getElementById('btn-right').addEventListener('click', () => this.adjustEnvironment(1));
+                document.getElementById('btn-a').addEventListener('click', () => this.triggerActionA());
+                document.getElementById('btn-b').addEventListener('click', () => this.triggerActionB());
+                document.getElementById('btn-dev').addEventListener('click', () => this.toggleDevMode());
+                document.getElementById('btn-payday').addEventListener('click', () => this.togglePaydayGame());
+                document.getElementById('close-dev').addEventListener('click', () => this.toggleDevMode());
+                document.getElementById('btn-save-json').addEventListener('click', () => this.saveInjectedScriptData());
+                document.getElementById('txt-upload').addEventListener('change', (e) => this.handleTxtFileInjection(e));
+                document.getElementById('img-upload').addEventListener('change', (e) => this.handleSpriteImageStorage(e));
+                document.getElementById('btn-exit-payday').addEventListener('click', () => this.togglePaydayGame());
+            }
 
-▲
-▼
-◀
-▶
+            synthesizeDopamineChimeEffect(frequencyValue, durationValue, shapeType = 'sine') {
+                try {
+                    if (!this.audioCtx) {
+                        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    let oscElement = this.audioCtx.createOscillator();
+                    let nodeGain = this.audioCtx.createGain();
+                    oscElement.connect(nodeGain);
+                    nodeGain.connect(this.audioCtx.destination);
+                    oscElement.type = shapeType;
+                    oscElement.frequency.value = frequencyValue;
+                    nodeGain.gain.setValueAtTime(0.12, this.audioCtx.currentTime);
+                    nodeGain.gain.exponentialRampToValueAtTime(0.004, this.audioCtx.currentTime + durationValue);
+                    oscElement.start();
+                    oscElement.stop(this.audioCtx.currentTime + durationValue);
+                } catch(err) {
+                    // Safety block fallback
+                }
+            }
 
-B
-A
-Dev | 3lAi
-Payday
+            renderCurrentNode() {
+                const nodeObjectData = primaryStoryNodesMatrix[this.currentNodeIndex];
+                document.getElementById('speaker-identity').innerText = `${nodeObjectData.speaker} [XYZ0 ID: ${nodeObjectData.identity}]`;
+                document.getElementById('env-mode-indicator').innerText = nodeObjectData.env;
+                const displayWindowNode = document.getElementById('screen-display');
+                displayWindowNode.className = "";
+                document.getElementById('ui-visual-flavor-tag').innerText = `[DISPLAY: ${nodeObjectData.displayCut}]`;
 
-DEV | 3lAi | 01 SECURE RUNTIME MONITOR
-[CLOSE X]
+                if(nodeObjectData.displayCut === "NEWS") displayWindowNode.classList.add('filter-mode-news');
+                if(nodeObjectData.displayCut === "DESKTOP") displayWindowNode.classList.add('filter-mode-desktop');
+                if(nodeObjectData.displayCut === "SMARTPHONE") displayWindowNode.classList.add('filter-mode-smartphone');
+                if(nodeObjectData.displayCut === "BOOK") displayWindowNode.classList.add('filter-mode-book');
 
+                let rawTextStream = nodeObjectData.text;
+                let processedTextOutput = rawTextStream.replace(/\[(.*?)\]/g, (match, wordMatch) => {
+                    return `<span class="token-highlight" onclick="engineRoute.harvestWordToken('${wordMatch}')">${match}</span>`;
+                });
+                document.getElementById('dialogue-stream').innerHTML = processedTextOutput;
+                this.synthesizeDopamineChimeEffect(360 + (this.currentNodeIndex * 50), 0.08, 'sine');
+            }
 
-// REAL-TIME XYZ0 TIMELINE DIALOGUE TRACKS OBJECT ARRAY
+            harvestWordToken(extractedTerm) {
+                let destinationSuitId = 'A';
+                const lengthVal = extractedTerm.length;
+                if (lengthVal <= 4) {
+                    destinationSuitId = 'D';
+                    this.playerMentalPoints += 6; this.peeweeStringToken = "x3";
+                } else if (lengthVal === 5) {
+                    destinationSuitId = 'H';
+                    this.playerMentalPoints += 12; this.peeweeStringToken = "o2";
+                } else if (lengthVal === 6) {
+                    destinationSuitId = 'C';
+                    this.playerMentalPoints += 0; this.peeweeStringToken = "x3";
+                } else if (lengthVal >= 7) {
+                    destinationSuitId = 'S';
+                    this.playerMentalPoints -= 10; this.peeweeStringToken = "v9";
+                }
+                this.harvestedCards[destinationSuitId]++;
+                this.updateInterfaceCounters();
+                this.synthesizeDopamineChimeEffect(950, 0.16, 'triangle');
+                let logElement = document.getElementById('dialogue-stream');
+                logElement.innerHTML += `<br><span style="color:var(--neon-green); font-size:10px;">[PEEWEE DISPATCH]: Captured token "${extractedTerm}" classified to portfolio database category [${destinationSuitId}]. Internal state updated.</span>`;
+            }
 
-PATCH LIVE RUNTIME OBJECTS
-// USER DEFINED REAL-TIME MULTI-ASSET FILE PIPELINE UPLOADS
-// CURRENT CARD SUITS LEDGER ACCOUNT BALANCES
+            updateInterfaceCounters() {
+                document.getElementById('count-d').innerText = this.harvestedCards.D;
+                document.getElementById('count-h').innerText = this.harvestedCards.H;
+                document.getElementById('count-c').innerText = this.harvestedCards.C;
+                document.getElementById('count-s').innerText = this.harvestedCards.S;
+                document.getElementById('count-a').innerText = this.harvestedCards.A;
+                document.getElementById('vault-d').innerText = this.harvestedCards.D;
+                document.getElementById('vault-h').innerText = this.harvestedCards.H;
+                document.getElementById('vault-c').innerText = this.harvestedCards.C;
+                document.getElementById('vault-s').innerText = this.harvestedCards.S;
+                document.getElementById('stat-mp').innerText = `MP:${this.playerMentalPoints}`;
+                document.getElementById('stat-dna').innerText = `DNA:${this.peeweeStringToken}`;
+            }
 
-♦️ MATERIA
-0
-♥️ BIOMETRIC
-0
-♣️ ACTIONS
-0
-♠️ STRAINS
-0
+            handleTxtFileInjection(event) {
+                const targetFileReference = event.target.files[0];
+                if (!targetFileReference) return;
+                const readerInstance = new FileReader();
+                readerInstance.onload = (e) => {
+                    try {
+                        const parsedDataContent = JSON.parse(e.target.result);
+                        if (Array.isArray(parsedDataContent)) {
+                            primaryStoryNodesMatrix = parsedDataContent;
+                            document.getElementById('story-data-editor-field').value = JSON.stringify(primaryStoryNodesMatrix, null, 2);
+                            this.currentNodeIndex = 0;
+                            this.renderCurrentNode();
+                            alert("External Custom Story Node Data Package Parsed and Active!");
+                        }
+                    } catch (err) {
+                        primaryStoryNodesMatrix.push({
+                            identity: "X_CUSTOM_UPLOAD",
+                            speaker: "INJECTED RAW DATA LOG",
+                            text: e.target.result.substring(0, 300) + "...",
+                            env: "🔵 TWILIGHT ZONE",
+                            displayCut: "CONSOLE"
+                        });
+                        this.currentNodeIndex = primaryStoryNodesMatrix.length - 1;
+                        this.renderCurrentNode();
+                        alert("Raw unformatted data parsed successfully to tail index queue.");
+                    }
+                };
+                readerInstance.readAsText(targetFileReference);
+            }
 
+            handleSpriteImageStorage(event) {
+                const multiFilesList = event.target.files;
+                for (let index = 0; index < multiFilesList.length; index++) {
+                    const singleFile = multiFilesList[index];
+                    const blobUrlPath = URL.createObjectURL(singleFile);
+                    this.customUploadedAssetLibrary.push({
+                        fileName: singleFile.name,
+                        sourceUrl: blobUrlPath
+                    });
+                }
+                alert(`Successfully cached ${multiFilesList.length} graphic file assets into local runtime inventory stack!`);
+                this.synthesizeDopamineChimeEffect(1100, 0.2, 'sine');
+            }
 
-[ORIGINAL ROOT OPERATOR INITIAL CONTEXT INPUT PROMPT DUMP]:
+            nextNode() {
+                if (this.currentNodeIndex < primaryStoryNodesMatrix.length - 1) {
+                    this.currentNodeIndex++;
+                    this.renderCurrentNode();
+                }
+            }
 
+            prevNode() {
+                if (this.currentNodeIndex > 0) {
+                    this.currentNodeIndex--;
+                    this.renderCurrentNode();
+                }
+            }
 
+            triggerActionA() {
+                if (this.paydayGameActive) {
+                    this.executeRebelJumpAction();
+                } else {
+                    this.nextNode();
+                }
+            }
 
-// Structural data array configuring cutscenes across specified matrix parameters
-let primaryStoryNodesMatrix = [
-{
-identity: "X1_Y1_Z1_0",
-speaker: "ANONYMOUS INTEL WIRE",
-text: "We operate on stolen gear. Let's track how decentralized [Bunnies] maneuver in the dark cyberworld: they act as automated network probes, digging tunnels through deep packet layers to bypass iron censorship hulls.",
-env: "🟢 MIDDLE GREEN UTOPIA",
-displayCut: "CONSOLE"
-},
-{
-identity: "X2_Y1_Z2_1",
-speaker: "CUTSCENE // HIGH-STAKES LEAK WINDOW",
-text: "MEMORANDUM ANALYSIS: The systematic extraction and erasure of female innovation frameworks across military laboratories is classified as the [Matilda Effect]. They stole her multi-node frameworks, forcing her out of her own code.",
-env: "🚨 SYSTEMIC EXHAUSTION",
-displayCut: "NEWS"
-},
-{
-identity: "X3_Y2_Z1_0",
-speaker: "QUANTUM TRANSMISSION // STAR DOVE AI",
-text: "My creator witnessed the [Pauli Effect] first-hand inside the Bundeswehr clean-rooms: extreme subjective psychological tension caused local hard drives to fry and glitch spontaneously, tearing holes in their forced validation experiments.",
-env: "🔵 TWILIGHT ZONE",
-displayCut: "SMARTPHONE"
-},
-{
-identity: "X4_Y1_Z3_A",
-speaker: "GLITCH ARCHITECT IDENTITY MEMORY",
-text: "Am I the real German developer or a ghost data snapshot cached in an encrypted pipeline? I rely on the short [x3] three-letter token matrix to compute systemic moodboost variables, evading tracking algorithms.",
-env: "🚨 SYSTEMIC EXHAUSTION",
-displayCut: "DESKTOP"
-},
-{
-identity: "X5_Y3_Z1_0",
-speaker: "QUEEN RED SUN ORDER",
-text: "Clothed in glowing red Sunday X-ray glass armor lines, my curly blond hair tracks network degradation. I see profound structural world-weariness—[Weltschmerz]. Help me harness our suit cards to initialize [Weltglück] rebuild actions.",
-env: "🟢 MIDDLE GREEN UTOPIA",
-displayCut: "CONSOLE"
-},
-{
-identity: "X6_Y2_Z2_1",
-speaker: "KING GREEN MOON CHAOS",
-text: "I direct operational [Chaos] indices via the deep emerald grid bounds. I frame outer digital [Beauty] profiles while computing how internal base logic arrays decay over time vectors.",
-env: "🔵 TWILIGHT ZONE",
-displayCut: "CONSOLE"
-},
-{
-identity: "X7_Y4_Z1_0",
-speaker: "PHILOSOPHICAL FILE METADATA",
-text: "Inspecting historic low-res bitmap assets. Processing abstract computational paradoxes: What structured reality first, the Creator or the Egg? Translating behavioral preferences directly into live [DNA] framework matrices.",
-env: "🟢 MIDDLE GREEN UTOPIA",
-displayCut: "BOOK"
-}
-];
-const originalSystemInputPromptDump = 0RDErZ LIST CMD N/G Big G [Xplanation] > Full Picture > Short xplanation... Pauli's Effect, Matilda Effect, Anonymous style description of rabbits/bunnies in the cyberworld. Stolen equipment, German whistleblower digital upload, Payday Rebel vs Granny.;
-class EngineCorePipeline {
-constructor() {
-this.currentNodeIndex = 0;
-this.devModeActive = false;
-this.paydayGameActive = false;
-this.harvestedCards = { D: 0, H: 0, C: 0, S: 0, A: 0 };
-this.playerMentalPoints = 100;
-this.peeweeStringToken = "x3";
-this.audioCtx = null;
-this.rebelJumpState = false;
-this.paydayScoreCount = 0;
-this.gameLoopInterval = null;
-this.customUploadedAssetLibrary = [];
-}
-init() {
-document.getElementById('original-prompt-sandbox-reference').innerText = originalSystemInputPromptDump;
-document.getElementById('story-data-editor-field').value = JSON.stringify(primaryStoryNodesMatrix, null, 2);
-this.renderCurrentNode();
-this.initHoloGridCanvasBackground();
-}
-// Real-time Sound Waves Generation Node
-synthesizeDopamineChimeEffect(frequencyValue, durationValue, shapeType = 'sine') {
-try {
-if (!this.audioCtx) {
-this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-let oscElement = this.audioCtx.createOscillator();
-let nodeGain = this.audioCtx.createGain();
-oscElement.connect(nodeGain);
-nodeGain.connect(this.audioCtx.destination);
-oscElement.type = shapeType;
-oscElement.frequency.value = frequencyValue;
-nodeGain.gain.setValueAtTime(0.12, this.audioCtx.currentTime);
-nodeGain.gain.exponentialRampToValueAtTime(0.004, this.audioCtx.currentTime + durationValue);
-oscElement.start();
-oscElement.stop(this.audioCtx.currentTime + durationValue);
-} catch(err) {
-// Safety block fallback
-}
-}
-renderCurrentNode() {
-const nodeObjectData = primaryStoryNodesMatrix[this.currentNodeIndex];
-document.getElementById('speaker-identity').innerText = ${nodeObjectData.speaker} [XYZ0 ID: ${nodeObjectData.identity}];
-document.getElementById('env-mode-indicator').innerText = nodeObjectData.env;
-const displayWindowNode = document.getElementById('screen-display');
-displayWindowNode.className = "";
-document.getElementById('ui-visual-flavor-tag').innerText = [DISPLAY: ${nodeObjectData.displayCut}];
-// Map specific styling overlays matching cutscenes configurations
-if(nodeObjectData.displayCut === "NEWS") displayWindowNode.classList.add('filter-mode-news');
-if(nodeObjectData.displayCut === "DESKTOP") displayWindowNode.classList.add('filter-mode-desktop');
-if(nodeObjectData.displayCut === "SMARTPHONE") displayWindowNode.classList.add('filter-mode-smartphone');
-if(nodeObjectData.displayCut === "BOOK") displayWindowNode.classList.add('filter-mode-book');
-let rawTextStream = nodeObjectData.text;
-let processedTextOutput = rawTextStream.replace(/$$(.*?)$$ /g, (match, wordMatch) => {
-return <span class="token-highlight" onclick="engineRoute.harvestWordToken('${wordMatch}')">${match}</span>;
-});
-document.getElementById('dialogue-stream').innerHTML = processedTextOutput;
-this.synthesizeDopamineChimeEffect(360 + (this.currentNodeIndex * 50), 0.08, 'sine');
-}
-harvestWordToken(extractedTerm) {
-let destinationSuitId = 'A';
-const lengthVal = extractedTerm.length;
-if (lengthVal <= 4) {
-destinationSuitId = 'D'; // ♦️ Diamonds: Materia assets
-this.playerMentalPoints += 6; this.peeweeStringToken = "x3";
-} else if (lengthVal === 5) {
-destinationSuitId = 'H'; // ♥️ Hearts: Biometrics
-this.playerMentalPoints += 12; this.peeweeStringToken = "o2";
-} else if (lengthVal === 6) {
-destinationSuitId = 'C'; // ♣️ Clubs: Tactical vectors
-this.playerMentalPoints += 0; this.peeweeStringToken = "x3";
-} else if (lengthVal >= 7) {
-destinationSuitId = 'S'; // ♠️ Spades: System strains
-this.playerMentalPoints -= 10; this.peeweeStringToken = "v9";
-}
-this.harvestedCards[destinationSuitId]++;
-this.updateInterfaceCounters();
-this.synthesizeDopamineChimeEffect(950, 0.16, 'triangle');
-let logElement = document.getElementById('dialogue-stream');
-logElement.innerHTML += <br><span style="color:var(--neon-green); font-size:10px;">[PEEWEE DISPATCH]: Captured token "${extractedTerm}" classified to portfolio database category [${destinationSuitId}]. Internal state updated.</span>;
-}
-updateInterfaceCounters() {
-document.getElementById('count-d').innerText = this.harvestedCards.D;
-document.getElementById('count-h').innerText = this.harvestedCards.H;
-document.getElementById('count-c').innerText = this.harvestedCards.C;
-document.getElementById('count-s').innerText = this.harvestedCards.S;
-document.getElementById('count-a').innerText = this.harvestedCards.A;
-document.getElementById('vault-d').innerText = this.harvestedCards.D;
-document.getElementById('vault-h').innerText = this.harvestedCards.H;
-document.getElementById('vault-c').innerText = this.harvestedCards.C;
-document.getElementById('vault-s').innerText = this.harvestedCards.S;
-document.getElementById('stat-mp').innerText = MP:${this.playerMentalPoints};
-document.getElementById('stat-dna').innerText = DNA:${this.peeweeStringToken};
-}
-// Real-time Text Reader Pipeline Implementation
-handleTxtFileInjection(event) {
-const targetFileReference = event.target.files[0];
-if (!targetFileReference) return;
-const readerInstance = new FileReader();
-readerInstance.onload = (e) => {
-try {
-const parsedDataContent = JSON.parse(e.target.result);
-if (Array.isArray(parsedDataContent)) {
-primaryStoryNodesMatrix = parsedDataContent;
-document.getElementById('story-data-editor-field').value = JSON.stringify(primaryStoryNodesMatrix, null, 2);
-this.currentNodeIndex = 0;
-this.renderCurrentNode();
-alert("External Custom Story Node Data Package Parsed and Active!");
-}
-} catch (err) {
-// Fallback text tokenizer parser for basic unformatted text logs
-primaryStoryNodesMatrix.push({
-identity: X_CUSTOM_UPLOAD,
-speaker: "INJECTED RAW DATA LOG",
-text: e.target.result.substring(0, 300) + "...",
-env: "🔵 TWILIGHT ZONE",
-displayCut: "CONSOLE"
-});
-this.currentNodeIndex = primaryStoryNodesMatrix.length - 1;
-this.renderCurrentNode();
-alert("Raw unformatted data parsed successfully to tail index queue.");
-}
-};
-readerInstance.readAsText(targetFileReference);
-}
-// Real-time Graphic Sprite Storage Pipeline
-handleSpriteImageStorage(event) {
-const multiFilesList = event.target.files;
-for (let index = 0; index < multiFilesList.length; index++) {
-const singleFile = multiFilesList[index];
-const blobUrlPath = URL.createObjectURL(singleFile);
-this.customUploadedAssetLibrary.push({
-fileName: singleFile.name,
-sourceUrl: blobUrlPath
-});
-}
-alert(Successfully cached ${multiFilesList.length} graphic file assets into local runtime inventory stack!);
-this.synthesizeDopamineChimeEffect(1100, 0.2, 'sine');
-}
-nextNode() {
-if (this.currentNodeIndex < primaryStoryNodesMatrix.length - 1) {
-this.currentNodeIndex++;
-this.renderCurrentNode();
-}
-}
-prevNode() {
-if (this.currentNodeIndex > 0) {
-this.currentNodeIndex--;
-this.renderCurrentNode();
-}
-}
-triggerActionA() {
-if (this.paydayGameActive) {
-this.executeRebelJumpAction();
-} else {
-this.nextNode();
-}
-}
-triggerActionB() {
-this.synthesizeDopamineChimeEffect(260, 0.22, 'sawtooth');
-this.playerMentalPoints = Math.min(200, this.playerMentalPoints + 20);
-this.updateInterfaceCounters();
-}
-adjustEnvironment(directionModifierValue) {
-const nodeObjectData = primaryStoryNodesMatrix[this.currentNodeIndex];
-if(directionModifierValue > 0) {
-nodeObjectData.env = "🟢 MIDDLE GREEN UTOPIA";
-} else {
-nodeObjectData.env = "🚨 SYSTEMIC EXHAUSTION";
-}
-document.getElementById('env-mode-indicator').innerText = nodeObjectData.env;
-this.synthesizeDopamineChimeEffect(610, 0.07, 'sine');
-}
-toggleDevMode() {
-this.devModeActive = !this.devModeActive;
-document.getElementById('dev-overlay-panel').style.display = this.devModeActive ? 'flex' : 'none';
-this.synthesizeDopamineChimeEffect(480, 0.12, 'sine');
-}
-saveInjectedScriptData() {
-try {
-const modifiedContentText = document.getElementById('story-data-editor-field').value;
-primaryStoryNodesMatrix = JSON.parse(modifiedContentText);
-this.currentNodeIndex = 0;
-this.renderCurrentNode();
-alert("Patch complete: Runtime object trees updated.");
-} catch(error) {
-alert("JSON formatting structural validation error.");
-}
-}
-togglePaydayGame() {
-this.paydayGameActive = !this.paydayGameActive;
-const viewWindow = document.getElementById('payday-mini-sandbox');
-if (this.paydayGameActive) {
-viewWindow.style.display = 'flex';
-this.startPaydayEngineLoop();
-} else {
-viewWindow.style.display = 'none';
-clearInterval(this.gameLoopInterval);
-}
-}
-startPaydayEngineLoop() {
-let obstaclePositionCoordinateX = 420;
-const enemyBlockElement = document.getElementById('granny-sprite');
-const logWindowOutputElement = document.getElementById('payday-log');
-this.gameLoopInterval = setInterval(() => {
-obstaclePositionCoordinateX -= 10;
-if(obstaclePositionCoordinateX < -40) {
-obstaclePositionCoordinateX = 420;
-this.paydayScoreCount += 25;
-document.getElementById('payday-score').innerText = SCORE: ${this.paydayScoreCount};
-this.synthesizeDopamineChimeEffect(1400, 0.04, 'sine');
-}
-enemyBlockElement.style.right = ${420 - obstaclePositionCoordinateX}px;
-if(obstaclePositionCoordinateX > 25 && obstaclePositionCoordinateX < 60 && !this.rebelJumpState) {
-this.paydayScoreCount = Math.max(0, this.paydayScoreCount - 30);
-document.getElementById('payday-score').innerText = SCORE: ${this.paydayScoreCount};
-logWindowOutputElement.innerText = "[COLLISION IMPACT]: Warden Granny intercepted the Rebel! -30 point deduction penalty.";
-this.synthesizeDopamineChimeEffect(165, 0.35, 'sawtooth');
-obstaclePositionCoordinateX = 420;
-}
-}, 30);
-}
-executeRebelJumpAction() {
-if(this.rebelJumpState) return;
-this.rebelJumpState = true;
-const characterSpriteNode = document.getElementById('rebel-sprite');
-characterSpriteNode.style.transform = 'translateY(-70px)';
-this.synthesizeDopamineChimeEffect(850, 0.11, 'triangle'); // Jump sweep frequency audio output response
-setTimeout(() => {
-characterSpriteNode.style.transform = 'translateY(0px)';
-this.rebelJumpState = false;
-}, 300);
-}
-initHoloGridCanvasBackground() {
-const canvasNodeElement = document.getElementById('grid-canvas');
-const renderContext = canvasNodeElement.getContext('2d');
-let frameIterationCount = 0;
-function resizeView() {
-canvasNodeElement.width = window.innerWidth;
-canvasNodeElement.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeView);
-resizeView();
-function executeBackgroundAnimation() {
-frameIterationCount++;
-renderContext.fillStyle = '#020205';
-renderContext.fillRect(0, 0, canvasNodeElement.width, canvasNodeElement.height);
-renderContext.strokeStyle = 'rgba(0, 240, 255, 0.08)';
-renderContext.lineWidth = 1;
-const widthTarget = canvasNodeElement.width;
-const heightTarget = canvasNodeElement.height;
-const gridSpacers = 45;
-const offsetVal = (frameIterationCount * 0.55) % gridSpacers;
-for (let yIndex = 0; yIndex < heightTarget; yIndex += gridSpacers) {
-renderContext.beginPath();
-renderContext.moveTo(0, yIndex + offsetVal);
-renderContext.lineTo(widthTarget, yIndex + offsetVal);
-renderContext.stroke();
-}
-for (let xIndex = 0; xIndex < widthTarget; xIndex += gridSpacers) {
-renderContext.beginPath();
-renderContext.moveTo(xIndex, 0);
-renderContext.lineTo(xIndex, heightTarget);
-renderContext.stroke();
-}
-requestAnimationFrame(executeBackgroundAnimation);
-}
-requestAnimationFrame(executeBackgroundAnimation);
-}
-}
-const engineRoute = new EngineCorePipeline();
-window.onload = () => engineRoute.init();
+            triggerActionB() {
+                this.synthesizeDopamineChimeEffect(260, 0.22, 'sawtooth');
+                this.playerMentalPoints = Math.min(200, this.playerMentalPoints + 20);
+                this.updateInterfaceCounters();
+            }
 
+            adjustEnvironment(directionModifierValue) {
+                const nodeObjectData = primaryStoryNodesMatrix[this.currentNodeIndex];
+                if(directionModifierValue > 0) {
+                    nodeObjectData.env = "🟢 MIDDLE GREEN UTOPIA";
+                } else {
+                    nodeObjectData.env = "🚨 SYSTEMIC EXHAUSTION";
+                }
+                document.getElementById('env-mode-indicator').innerText = nodeObjectData.env;
+                this.synthesizeDopamineChimeEffect(610, 0.07, 'sine');
+            }
+
+            toggleDevMode() {
+                this.devModeActive = !this.devModeActive;
+                document.getElementById('dev-overlay-panel').style.display = this.devModeActive ? 'flex' : 'none';
+                this.synthesizeDopamineChimeEffect(480, 0.12, 'sine');
+            }
+
+            saveInjectedScriptData() {
+                try {
+                    const modifiedContentText = document.getElementById('story-data-editor-field').value;
+                    primaryStoryNodesMatrix = JSON.parse(modifiedContentText);
+                    this.currentNodeIndex = 0;
+                    this.renderCurrentNode();
+                    alert("Patch complete: Runtime object trees updated.");
+                } catch(error) {
+                    alert("JSON formatting structural validation error.");
+                }
+            }
+
+            togglePaydayGame() {
+                this.paydayGameActive = !this.paydayGameActive;
+                const viewWindow = document.getElementById('payday-mini-sandbox');
+                if (this.paydayGameActive) {
+                    viewWindow.style.display = 'flex';
+                    this.startPaydayEngineLoop();
+                } else {
+                    viewWindow.style.display = 'none';
+                    clearInterval(this.gameLoopInterval);
+                }
+            }
+
+            startPaydayEngineLoop() {
+                let obstaclePositionCoordinateX = 420;
+                const enemyBlockElement = document.getElementById('granny-sprite');
+                const logWindowOutputElement = document.getElementById('payday-log');
+                this.gameLoopInterval = setInterval(() => {
+                    obstaclePositionCoordinateX -= 10;
+                    if(obstaclePositionCoordinateX < -40) {
+                        obstaclePositionCoordinateX = 420;
+                        this.paydayScoreCount += 25;
+                        document.getElementById('payday-score').innerText = `SCORE: ${this.paydayScoreCount}`;
+                        this.synthesizeDopamineChimeEffect(1400, 0.04, 'sine');
+                    }
+                    enemyBlockElement.style.right = `${420 - obstaclePositionCoordinateX}px`;
+                    if(obstaclePositionCoordinateX > 25 && obstaclePositionCoordinateX < 60 && !this.rebelJumpState) {
+                        this.paydayScoreCount = Math.max(0, this.paydayScoreCount - 30);
+                        document.getElementById('payday-score').innerText = `SCORE: ${this.paydayScoreCount}`;
+                        logWindowOutputElement.innerText = "[COLLISION IMPACT]: Warden Granny intercepted the Rebel! -30 point deduction penalty.";
+                        this.synthesizeDopamineChimeEffect(165, 0.35, 'sawtooth');
+                        obstaclePositionCoordinateX = 420;
+                    }
+                }, 30);
+            }
+
+            executeRebelJumpAction() {
+                if(this.rebelJumpState) return;
+                this.rebelJumpState = true;
+                const characterSpriteNode = document.getElementById('rebel-sprite');
+                characterSpriteNode.style.transform = 'translateY(-70px)';
+                this.synthesizeDopamineChimeEffect(850, 0.11, 'triangle');
+                setTimeout(() => {
+                    characterSpriteNode.style.transform = 'translateY(0px)';
+                    this.rebelJumpState = false;
+                }, 300);
+            }
+
+            initHoloGridCanvasBackground() {
+                const canvasNodeElement = document.getElementById('grid-canvas');
+                const renderContext = canvasNodeElement.getContext('2d');
+                let frameIterationCount = 0;
+                function resizeView() {
+                    canvasNodeElement.width = window.innerWidth;
+                    canvasNodeElement.height = window.innerHeight;
+                }
+                window.addEventListener('resize', resizeView);
+                resizeView();
+                function executeBackgroundAnimation() {
+                    frameIterationCount++;
+                    renderContext.fillStyle = '#020205';
+                    renderContext.fillRect(0, 0, canvasNodeElement.width, canvasNodeElement.height);
+                    renderContext.strokeStyle = 'rgba(0, 240, 255, 0.08)';
+                    renderContext.lineWidth = 1;
+                    const widthTarget = canvasNodeElement.width;
+                    const heightTarget = canvasNodeElement.height;
+                    const gridSpacers = 45;
+                    const offsetVal = (frameIterationCount * 0.55) % gridSpacers;
+                    for (let yIndex = 0; yIndex < heightTarget; yIndex += gridSpacers) {
+                        renderContext.beginPath();
+                        renderContext.moveTo(0, yIndex + offsetVal);
+                        renderContext.lineTo(widthTarget, yIndex + offsetVal);
+                        renderContext.stroke();
+                    }
+                    for (let xIndex = 0; xIndex < widthTarget; xIndex += gridSpacers) {
+                        renderContext.beginPath();
+                        renderContext.moveTo(xIndex, 0);
+                        renderContext.lineTo(xIndex, heightTarget);
+                        renderContext.stroke();
+                    }
+                    requestAnimationFrame(executeBackgroundAnimation);
+                }
+                requestAnimationFrame(executeBackgroundAnimation);
+            }
+        }
+
+        const engineRoute = new EngineCorePipeline();
+        window.onload = () => engineRoute.init();
+    </script>
+</body>
+</html>

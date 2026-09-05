@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Retro Boombox & Tapes</title>
     <style>
         body {
@@ -33,64 +33,71 @@
         }
         .button {
             pointer-events: auto;
-            background: rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 20px;
-            padding: 10px 15px;
+            background: rgba(0,0,0,0.65);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 30px;
+            padding: 12px 18px;
             color: white;
-            font-size: 14px;
+            font-size: 15px;
             cursor: pointer;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px);
             transition: all 0.2s;
             margin: 0 5px;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            box-shadow: 0 0 15px rgba(0,255,255,0.3);
         }
         .button:active {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.4);
             transform: scale(0.95);
+            box-shadow: 0 0 25px rgba(255,0,255,0.6);
         }
         #uploadInput {
             display: none;
         }
         .toggle {
             position: relative;
-            width: 48px;
-            height: 24px;
-            background: #444;
-            border-radius: 12px;
+            width: 52px;
+            height: 26px;
+            background: #222;
+            border-radius: 13px;
             transition: background 0.3s;
             pointer-events: auto;
             cursor: pointer;
+            box-shadow: inset 0 0 5px #000;
         }
         .toggle.active {
-            background: #2a9d8f;
+            background: #00ffcc;
+            box-shadow: 0 0 20px #00ffcc;
         }
         .toggle::after {
             content: '';
             position: absolute;
             top: 2px;
             left: 2px;
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             background: white;
             border-radius: 50%;
-            transition: transform 0.3s;
+            transition: transform 0.3s, background 0.3s;
+            box-shadow: 0 0 10px #fff;
         }
         .toggle.active::after {
-            transform: translateX(24px);
+            transform: translateX(26px);
+            background: #111;
         }
         #info {
             position: absolute;
             bottom: 20px;
             left: 20px;
             right: 20px;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255,255,255,0.8);
             text-align: center;
-            font-size: 12px;
+            font-size: 13px;
             pointer-events: none;
             z-index: 10;
+            text-shadow: 0 0 10px #00ffff;
         }
     </style>
 </head>
@@ -102,7 +109,7 @@
             <input type="file" id="uploadInput" accept="audio/*">
         </div>
         <div style="display: flex; align-items: center;">
-            <span style="color: white; margin-right: 10px; pointer-events: none; font-size: 13px;">8-bit</span>
+            <span style="color: #0ff; margin-right: 10px; pointer-events: none; font-size: 14px; text-shadow: 0 0 10px #0ff;">8-bit</span>
             <div class="toggle" id="bitToggle"></div>
         </div>
     </div>
@@ -111,13 +118,13 @@
     <script>
         (function() {
             const canvas = document.getElementById('glCanvas');
-            const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+            const gl = canvas.getContext('webgl', { antialias: true, alpha: false, powerPreference: "high-performance" });
             if (!gl) {
                 alert('WebGL not supported');
                 return;
             }
 
-            // ---------- Shader ----------
+            // ---------- Vertex Shader ----------
             const vertShaderSource = `
                 attribute vec2 aPos;
                 void main() {
@@ -125,6 +132,7 @@
                 }
             `;
 
+            // ---------- Fragment Shader (with fixes and enhancements) ----------
             const fragShaderSource = `
                 precision highp float;
                 
@@ -138,17 +146,18 @@
                 #define deg45 .707
                 #define R45(p) ((p + vec2(p.y, -p.x)) * deg45)
                 #define Tri(p, s) max(R45(p).x, max(R45(p).y, B(p, s)))
+                #define SUV(p) vec2(atan(p.x, p.z), acos(p.y))
                 
                 uniform vec2 uResolution;
                 uniform float uTime;
                 uniform vec3 uCamRot;    // x: yaw, y: pitch, z: unused
                 uniform vec3 uTapePos[8];
-                uniform vec3 uTapeRot[8]; // euler rotation in radians
+                uniform vec3 uTapeRot[8];
                 uniform vec3 uTapeColor[8];
                 uniform float uTapePlaying[8];
                 uniform int uTapeCount;
 
-                // --- SDFs from original (boombox) ---
+                // ---- SDF from original boombox ----
                 float sdBox(vec3 p, vec3 b) {
                     vec3 q = abs(p) - b;
                     return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
@@ -358,39 +367,45 @@
                     return d;
                 }
 
-                // --- Tape SDF ---
+                // ---- Enhanced tape SDF (more authentic cassette shape) ----
                 float tapeSDF(vec3 p, vec3 pos, vec3 rot, float playing) {
-                    // Transform to local space
                     p -= pos;
-                    // Apply inverse rotation (Euler XYZ)
+                    // Apply inverse rotation
                     p.yz *= Rot(-rot.x);
                     p.xz *= Rot(-rot.y);
                     p.xy *= Rot(-rot.z);
                     
-                    // Tape dimensions (scaled to fit in scene)
-                    float body = sdBox(p, vec3(0.08, 0.05, 0.015));
+                    // Main cassette body (slightly rounded edges)
+                    float body = sdBox(p, vec3(0.085, 0.055, 0.018));
                     
-                    // Reels (two circles on top face)
+                    // Top label area
+                    float label = sdBox(p - vec3(0.0, -0.012, 0.014), vec3(0.065, 0.025, 0.006));
+                    
+                    // Two reels (circles on the top face)
                     vec3 q = p;
-                    q.y = abs(q.y) - 0.025; // move to top surface
-                    float reels = length(q.xy) - 0.025;
-                    // Make holes
-                    reels = max(reels, -sdBox(q - vec3(0.0, 0.0, 0.005), vec3(0.03, 0.03, 0.01)));
+                    q.y = abs(q.y) - 0.025; // lift to top
+                    float reel1 = length(q.xy - vec2(-0.03, 0.0)) - 0.022;
+                    float reel2 = length(q.xy - vec2(0.03, 0.0)) - 0.022;
+                    float reels = min(reel1, reel2);
                     
-                    // Label area
-                    float label = sdBox(p - vec3(0.0, -0.015, 0.012), vec3(0.06, 0.02, 0.005));
+                    // Screw holes at corners
+                    float screw = length(p.xy - vec2(0.07, 0.045)) - 0.005;
+                    screw = min(screw, length(p.xy - vec2(-0.07, 0.045)) - 0.005);
+                    screw = min(screw, length(p.xy - vec2(0.07, -0.045)) - 0.005);
+                    screw = min(screw, length(p.xy - vec2(-0.07, -0.045)) - 0.005);
                     
                     float d = min(body, label);
                     d = min(d, reels);
+                    d = min(d, screw);
                     
-                    // Add highlight if playing
+                    // Slight glow when playing
                     if (playing > 0.5) {
-                        d = min(d, length(p) - 0.09); // subtle glow sphere
+                        d = min(d, length(p) - 0.1); // subtle aura
                     }
                     return d;
                 }
 
-                // --- Global distance function ---
+                // ---- Global distance function ----
                 vec2 GetDist(vec3 p) {
                     float d = boomBox(p);
                     // Add tapes
@@ -560,17 +575,20 @@
                         vec3 n = GetNormal(p);
                         int mat = int(d.y);
                         col = materials(mat, n, rd, p, col);
-                        // Add glow for playing tapes
+                        // Add glow around playing tapes
                         for (int i = 0; i < 8; i++) {
                             if (i >= uTapeCount) break;
                             if (uTapePlaying[i] > 0.5) {
                                 float distToTape = length(p - uTapePos[i]);
-                                col += uTapeColor[i] * 0.5 * exp(-distToTape * 20.0);
+                                col += uTapeColor[i] * 0.6 * exp(-distToTape * 25.0);
                             }
                         }
                     } else {
                         col = drawBg(uv, col);
                     }
+                    // slight vignette
+                    float vignette = 1.0 - length(uv * vec2(uResolution.x/uResolution.y, 1.0)) * 0.3;
+                    col *= clamp(vignette, 0.0, 1.0);
                     gl_FragColor = vec4(col, 1.0);
                 }
             `;
@@ -581,7 +599,7 @@
                 gl.shaderSource(shader, src);
                 gl.compileShader(shader);
                 if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                    console.error(gl.getShaderInfoLog(shader));
+                    console.error('Shader compile error:', gl.getShaderInfoLog(shader));
                     return null;
                 }
                 return shader;
@@ -595,7 +613,7 @@
             gl.attachShader(program, fragShader);
             gl.linkShader(program);
             if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-                console.error(gl.getProgramInfoLog(program));
+                console.error('Program link error:', gl.getProgramInfoLog(program));
                 return;
             }
             gl.useProgram(program);
@@ -623,8 +641,8 @@
             const uTapeCount = gl.getUniformLocation(program, 'uTapeCount');
 
             // Camera state
-            let camYaw = 0.0;   // rotation around Y
-            let camPitch = -5.0 * Math.PI / 180.0; // slight downward
+            let camYaw = 0.0;
+            let camPitch = -5.0 * Math.PI / 180.0;
             let isDragging = false;
             let lastX = 0, lastY = 0;
 
@@ -633,23 +651,22 @@
             let tapes = [];
             let nextTapeId = 0;
             const tapeColors = [
-                [1.0, 0.2, 0.2],  // red
-                [0.2, 0.8, 0.3],  // green
-                [0.2, 0.5, 1.0],  // blue
-                [1.0, 0.8, 0.1],  // yellow
-                [0.8, 0.2, 0.8],  // purple
-                [0.1, 0.9, 0.9],  // cyan
-                [1.0, 0.5, 0.1],  // orange
-                [0.9, 0.1, 0.5]   // pink
+                [1.0, 0.2, 0.2],
+                [0.2, 0.8, 0.3],
+                [0.2, 0.5, 1.0],
+                [1.0, 0.8, 0.1],
+                [0.8, 0.2, 0.8],
+                [0.1, 0.9, 0.9],
+                [1.0, 0.5, 0.1],
+                [0.9, 0.1, 0.5]
             ];
 
-            // Audio context and nodes
+            // Audio
             let audioCtx = null;
             let masterGain = null;
             let bitcrusherNode = null;
             let bitcrusherEnabled = false;
 
-            // Initialize audio on first user gesture
             function initAudio() {
                 if (audioCtx) return;
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -657,29 +674,27 @@
                 masterGain.gain.value = 0.8;
                 masterGain.connect(audioCtx.destination);
 
-                // Bitcrusher (simple downsampling + quantization)
+                // Bitcrusher (8-bit style)
                 const bufferSize = 4096;
                 bitcrusherNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
                 bitcrusherNode.onaudioprocess = function(e) {
                     const input = e.inputBuffer.getChannelData(0);
                     const output = e.outputBuffer.getChannelData(0);
-                    const bits = 4; // 8-bit style
+                    const bits = 4;
                     const step = Math.pow(0.5, bits);
                     for (let i = 0; i < input.length; i++) {
-                        // downsample by factor 2 (simulate lower sample rate)
                         if (i % 2 === 0) {
                             const val = Math.round(input[i] / step) * step;
                             output[i] = val;
                             output[i + 1] = val;
                         } else {
-                            output[i] = output[i - 1]; // hold sample
+                            output[i] = output[i - 1];
                         }
                     }
                 };
                 bitcrusherNode.connect(audioCtx.destination);
             }
 
-            // Toggle bitcrusher
             function setBitcrusher(enabled) {
                 bitcrusherEnabled = enabled;
                 if (!audioCtx) return;
@@ -692,7 +707,6 @@
                 }
             }
 
-            // Tape class
             class Tape {
                 constructor(pos, rot, color) {
                     this.id = nextTapeId++;
@@ -737,28 +751,28 @@
                     this.playing = false;
                 }
                 update(time) {
-                    // Simple orbit around center (0,0,0)
                     const angle = time * this.orbitSpeed + this.orbitOffset;
-                    const x = Math.cos(angle) * this.orbitRadius;
-                    const z = Math.sin(angle) * this.orbitRadius;
-                    const y = Math.sin(time * this.bobSpeed + this.orbitOffset) * this.bobAmp;
-                    this.pos = [x, y, z];
-                    // Slight rotation
-                    this.rot = [Math.sin(time * 0.7) * 0.5, time * 0.5, Math.cos(time * 0.6) * 0.3];
+                    this.pos = [
+                        Math.cos(angle) * this.orbitRadius,
+                        Math.sin(time * this.bobSpeed + this.orbitOffset) * this.bobAmp,
+                        Math.sin(angle) * this.orbitRadius
+                    ];
+                    this.rot = [Math.sin(time * 0.7) * 0.4, time * 0.5, Math.cos(time * 0.6) * 0.3];
                 }
             }
 
             // Create initial tapes (no audio)
             function createDefaultTapes() {
-                for (let i = 0; i < 4; i++) {
+                for (let i = 0; i < 5; i++) {
                     const tape = new Tape([0, 0, 0], [0, 0, 0], tapeColors[i % tapeColors.length]);
-                    tape.orbitOffset = (i / 4) * Math.PI * 2;
+                    tape.orbitOffset = (i / 5) * Math.PI * 2;
+                    tape.orbitRadius = 0.35 + i * 0.05;
                     tapes.push(tape);
                 }
             }
             createDefaultTapes();
 
-            // Upload music
+            // Upload handling
             document.getElementById('uploadBtn').addEventListener('click', () => {
                 document.getElementById('uploadInput').click();
             });
@@ -770,11 +784,9 @@
                 try {
                     const arrayBuf = await file.arrayBuffer();
                     const audioBuf = await audioCtx.decodeAudioData(arrayBuf);
-                    // Find a free tape or replace oldest
                     let tape = tapes.find(t => !t.audioBuffer);
                     if (!tape) {
                         if (tapes.length >= MAX_TAPES) {
-                            // Replace first tape
                             tape = tapes[0];
                             tape.stop();
                             tape.audioBuffer = null;
@@ -800,13 +812,13 @@
                 setBitcrusher(bitcrusherEnabled);
             });
 
-            // Touch / mouse controls for camera and tape picking
+            // Touch/mouse controls
+            let pendingTap = null;
             canvas.addEventListener('mousedown', (e) => {
                 initAudio();
                 isDragging = true;
                 lastX = e.clientX;
                 lastY = e.clientY;
-                // Store for tap detection
                 pendingTap = { x: e.clientX, y: e.clientY, time: Date.now() };
             });
             canvas.addEventListener('mousemove', (e) => {
@@ -818,7 +830,7 @@
                 camPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, camPitch));
                 lastX = e.clientX;
                 lastY = e.clientY;
-                pendingTap = null; // cancel if moved
+                pendingTap = null;
             });
             canvas.addEventListener('mouseup', (e) => {
                 isDragging = false;
@@ -858,24 +870,18 @@
                 pendingTap = null;
             }, { passive: false });
 
-            let pendingTap = null;
-
-            // Picking: simple ray-sphere intersection using tape position
             function handleTap(clientX, clientY) {
                 const rect = canvas.getBoundingClientRect();
                 const x = clientX - rect.left;
                 const y = clientY - rect.top;
-                // Convert to clip space
+                const aspect = rect.width / rect.height;
                 const clipX = (x / rect.width) * 2 - 1;
                 const clipY = (y / rect.height) * 2 - 1;
-                // Camera ray (same as shader, but we use normalized device coordinates with aspect)
-                const aspect = rect.width / rect.height;
                 const uvX = clipX * aspect;
                 const uvY = clipY;
-                // Camera position and look-at
+
                 const ro = [0, 0, -1];
-                // Apply camera rotation (yaw around Y, pitch around X)
-                let rd = [uvX, -uvY, 1.0]; // initial forward direction in camera space
+                let rd = [uvX, -uvY, 1.0];
                 // Apply pitch
                 const pitch = camPitch;
                 rd = [
@@ -890,11 +896,9 @@
                     rd[1],
                     -rd[0] * Math.sin(yaw) + rd[2] * Math.cos(yaw)
                 ];
-                // Normalize
                 const len = Math.sqrt(rd[0]*rd[0]+rd[1]*rd[1]+rd[2]*rd[2]);
                 rd = [rd[0]/len, rd[1]/len, rd[2]/len];
 
-                // Check intersection with tape spheres (radius ~0.1)
                 let closestDist = Infinity;
                 let hitTape = null;
                 for (const tape of tapes) {
@@ -902,7 +906,7 @@
                     const dy = tape.pos[1] - ro[1];
                     const dz = tape.pos[2] - ro[2];
                     const b = dx*rd[0] + dy*rd[1] + dz*rd[2];
-                    const c = dx*dx + dy*dy + dz*dz - 0.15*0.15; // radius 0.15
+                    const c = dx*dx + dy*dy + dz*dz - 0.15*0.15;
                     const disc = b*b - c;
                     if (disc > 0) {
                         const t = -b - Math.sqrt(disc);
@@ -917,7 +921,7 @@
                 }
             }
 
-            // Resize canvas
+            // Resize
             function resizeCanvas() {
                 const dpr = Math.min(window.devicePixelRatio || 1, 2);
                 canvas.width = window.innerWidth * dpr;
@@ -932,11 +936,8 @@
             // Render loop
             function render(now) {
                 const time = now * 0.001;
-                
-                // Update tapes animation
                 tapes.forEach(tape => tape.update(time));
 
-                // Prepare uniform arrays
                 const posArray = new Float32Array(MAX_TAPES * 3);
                 const rotArray = new Float32Array(MAX_TAPES * 3);
                 const colorArray = new Float32Array(MAX_TAPES * 3);

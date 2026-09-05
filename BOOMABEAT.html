@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,10 +98,29 @@
             z-index: 10;
             text-shadow: 0 0 10px #00ffff;
         }
+        #errorOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
     <canvas id="glCanvas"></canvas>
+    <div id="errorOverlay" style="display: none;"></div>
     <div id="ui">
         <div style="display: flex; align-items: center;">
             <button class="button" id="uploadBtn">🎵 Upload Music</button>
@@ -118,10 +136,19 @@
     <script>
         (function() {
             const canvas = document.getElementById('glCanvas');
+            const errorOverlay = document.getElementById('errorOverlay');
             const gl = canvas.getContext('webgl', { antialias: true, alpha: false, powerPreference: "high-performance" });
             if (!gl) {
-                alert('WebGL not supported');
+                showError('WebGL is not supported on this device.');
                 return;
+            }
+
+            function showError(msg) {
+                errorOverlay.style.display = 'flex';
+                errorOverlay.textContent = msg;
+            }
+            function hideError() {
+                errorOverlay.style.display = 'none';
             }
 
             // ---------- Vertex Shader ----------
@@ -132,11 +159,11 @@
                 }
             `;
 
-            // ---------- Fragment Shader (with fixes and enhancements) ----------
+            // ---------- Fragment Shader (optimized for mobile) ----------
             const fragShaderSource = `
                 precision highp float;
                 
-                #define MAX_STEPS 64
+                #define MAX_STEPS 32
                 #define MAX_DIST 64.
                 #define SURF_DIST .0005
                 #define Rot(a) mat2(cos(a), -sin(a), sin(a), cos(a))
@@ -150,14 +177,13 @@
                 
                 uniform vec2 uResolution;
                 uniform float uTime;
-                uniform vec3 uCamRot;    // x: yaw, y: pitch, z: unused
+                uniform vec3 uCamRot;
                 uniform vec3 uTapePos[8];
                 uniform vec3 uTapeRot[8];
                 uniform vec3 uTapeColor[8];
                 uniform float uTapePlaying[8];
                 uniform int uTapeCount;
 
-                // ---- SDF from original boombox ----
                 float sdBox(vec3 p, vec3 b) {
                     vec3 q = abs(p) - b;
                     return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
@@ -367,28 +393,21 @@
                     return d;
                 }
 
-                // ---- Enhanced tape SDF (more authentic cassette shape) ----
                 float tapeSDF(vec3 p, vec3 pos, vec3 rot, float playing) {
                     p -= pos;
-                    // Apply inverse rotation
                     p.yz *= Rot(-rot.x);
                     p.xz *= Rot(-rot.y);
                     p.xy *= Rot(-rot.z);
                     
-                    // Main cassette body (slightly rounded edges)
                     float body = sdBox(p, vec3(0.085, 0.055, 0.018));
-                    
-                    // Top label area
                     float label = sdBox(p - vec3(0.0, -0.012, 0.014), vec3(0.065, 0.025, 0.006));
                     
-                    // Two reels (circles on the top face)
                     vec3 q = p;
-                    q.y = abs(q.y) - 0.025; // lift to top
+                    q.y = abs(q.y) - 0.025;
                     float reel1 = length(q.xy - vec2(-0.03, 0.0)) - 0.022;
                     float reel2 = length(q.xy - vec2(0.03, 0.0)) - 0.022;
                     float reels = min(reel1, reel2);
                     
-                    // Screw holes at corners
                     float screw = length(p.xy - vec2(0.07, 0.045)) - 0.005;
                     screw = min(screw, length(p.xy - vec2(-0.07, 0.045)) - 0.005);
                     screw = min(screw, length(p.xy - vec2(0.07, -0.045)) - 0.005);
@@ -398,17 +417,14 @@
                     d = min(d, reels);
                     d = min(d, screw);
                     
-                    // Slight glow when playing
                     if (playing > 0.5) {
-                        d = min(d, length(p) - 0.1); // subtle aura
+                        d = min(d, length(p) - 0.1);
                     }
                     return d;
                 }
 
-                // ---- Global distance function ----
                 vec2 GetDist(vec3 p) {
                     float d = boomBox(p);
-                    // Add tapes
                     for (int i = 0; i < 8; i++) {
                         if (i >= uTapeCount) break;
                         float td = tapeSDF(p, uTapePos[i], uTapeRot[i], uTapePlaying[i]);
@@ -575,7 +591,6 @@
                         vec3 n = GetNormal(p);
                         int mat = int(d.y);
                         col = materials(mat, n, rd, p, col);
-                        // Add glow around playing tapes
                         for (int i = 0; i < 8; i++) {
                             if (i >= uTapeCount) break;
                             if (uTapePlaying[i] > 0.5) {
@@ -586,14 +601,12 @@
                     } else {
                         col = drawBg(uv, col);
                     }
-                    // slight vignette
                     float vignette = 1.0 - length(uv * vec2(uResolution.x/uResolution.y, 1.0)) * 0.3;
                     col *= clamp(vignette, 0.0, 1.0);
                     gl_FragColor = vec4(col, 1.0);
                 }
             `;
 
-            // Compile shaders
             function compileShader(src, type) {
                 const shader = gl.createShader(type);
                 gl.shaderSource(shader, src);
@@ -604,9 +617,13 @@
                 }
                 return shader;
             }
+
             const vertShader = compileShader(vertShaderSource, gl.VERTEX_SHADER);
             const fragShader = compileShader(fragShaderSource, gl.FRAGMENT_SHADER);
-            if (!vertShader || !fragShader) return;
+            if (!vertShader || !fragShader) {
+                showError('Your device could not compile the WebGL shader.');
+                return;
+            }
 
             const program = gl.createProgram();
             gl.attachShader(program, vertShader);
@@ -614,9 +631,11 @@
             gl.linkShader(program);
             if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
                 console.error('Program link error:', gl.getProgramInfoLog(program));
+                showError('WebGL failed to initialize on this device.');
                 return;
             }
             gl.useProgram(program);
+            hideError();
 
             // Fullscreen quad
             const quadVerts = new Float32Array([
@@ -630,7 +649,6 @@
             gl.enableVertexAttribArray(aPos);
             gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-            // Uniform locations
             const uResolution = gl.getUniformLocation(program, 'uResolution');
             const uTime = gl.getUniformLocation(program, 'uTime');
             const uCamRot = gl.getUniformLocation(program, 'uCamRot');
@@ -640,13 +658,11 @@
             const uTapePlaying = gl.getUniformLocation(program, 'uTapePlaying[0]');
             const uTapeCount = gl.getUniformLocation(program, 'uTapeCount');
 
-            // Camera state
             let camYaw = 0.0;
             let camPitch = -5.0 * Math.PI / 180.0;
             let isDragging = false;
             let lastX = 0, lastY = 0;
 
-            // Tape management
             const MAX_TAPES = 8;
             let tapes = [];
             let nextTapeId = 0;
@@ -661,7 +677,6 @@
                 [0.9, 0.1, 0.5]
             ];
 
-            // Audio
             let audioCtx = null;
             let masterGain = null;
             let bitcrusherNode = null;
@@ -674,24 +689,14 @@
                 masterGain.gain.value = 0.8;
                 masterGain.connect(audioCtx.destination);
 
-                // Bitcrusher (8-bit style)
-                const bufferSize = 4096;
-                bitcrusherNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
-                bitcrusherNode.onaudioprocess = function(e) {
-                    const input = e.inputBuffer.getChannelData(0);
-                    const output = e.outputBuffer.getChannelData(0);
-                    const bits = 4;
-                    const step = Math.pow(0.5, bits);
-                    for (let i = 0; i < input.length; i++) {
-                        if (i % 2 === 0) {
-                            const val = Math.round(input[i] / step) * step;
-                            output[i] = val;
-                            output[i + 1] = val;
-                        } else {
-                            output[i] = output[i - 1];
-                        }
-                    }
-                };
+                // Bitcrusher using WaveShaper for better compatibility
+                const curve = new Float32Array(256);
+                for (let i = 0; i < 256; i++) {
+                    const x = i / 255 * 2 - 1;
+                    curve[i] = Math.round(x * 8) / 8;
+                }
+                bitcrusherNode = audioCtx.createWaveShaper();
+                bitcrusherNode.curve = curve;
                 bitcrusherNode.connect(audioCtx.destination);
             }
 
@@ -717,7 +722,7 @@
                     this.audioBuffer = null;
                     this.sourceNode = null;
                     this.orbitOffset = Math.random() * Math.PI * 2;
-                    this.orbitRadius = 0.4 + Math.random() * 0.3;
+                    this.orbitRadius = 0.35 + Math.random() * 0.2;
                     this.orbitSpeed = 0.2 + Math.random() * 0.3;
                     this.bobSpeed = 0.5 + Math.random() * 0.5;
                     this.bobAmp = 0.05 + Math.random() * 0.05;
@@ -761,18 +766,17 @@
                 }
             }
 
-            // Create initial tapes (no audio)
+            // Create fewer initial tapes for mobile performance
             function createDefaultTapes() {
-                for (let i = 0; i < 5; i++) {
+                const count = (window.innerWidth < 768) ? 3 : 5;
+                for (let i = 0; i < count; i++) {
                     const tape = new Tape([0, 0, 0], [0, 0, 0], tapeColors[i % tapeColors.length]);
-                    tape.orbitOffset = (i / 5) * Math.PI * 2;
-                    tape.orbitRadius = 0.35 + i * 0.05;
+                    tape.orbitOffset = (i / count) * Math.PI * 2;
                     tapes.push(tape);
                 }
             }
             createDefaultTapes();
 
-            // Upload handling
             document.getElementById('uploadBtn').addEventListener('click', () => {
                 document.getElementById('uploadInput').click();
             });
@@ -804,7 +808,6 @@
                 e.target.value = '';
             });
 
-            // Bit toggle UI
             const bitToggle = document.getElementById('bitToggle');
             bitToggle.addEventListener('click', () => {
                 bitcrusherEnabled = !bitcrusherEnabled;
@@ -812,16 +815,16 @@
                 setBitcrusher(bitcrusherEnabled);
             });
 
-            // Touch/mouse controls
+            // Unified pointer events
             let pendingTap = null;
-            canvas.addEventListener('mousedown', (e) => {
+            canvas.addEventListener('pointerdown', (e) => {
                 initAudio();
                 isDragging = true;
                 lastX = e.clientX;
                 lastY = e.clientY;
                 pendingTap = { x: e.clientX, y: e.clientY, time: Date.now() };
             });
-            canvas.addEventListener('mousemove', (e) => {
+            canvas.addEventListener('pointermove', (e) => {
                 if (!isDragging) return;
                 const dx = e.clientX - lastX;
                 const dy = e.clientY - lastY;
@@ -832,43 +835,17 @@
                 lastY = e.clientY;
                 pendingTap = null;
             });
-            canvas.addEventListener('mouseup', (e) => {
+            canvas.addEventListener('pointerup', (e) => {
                 isDragging = false;
                 if (pendingTap && Date.now() - pendingTap.time < 300) {
                     handleTap(pendingTap.x, pendingTap.y);
                 }
                 pendingTap = null;
             });
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                initAudio();
-                const touch = e.touches[0];
-                isDragging = true;
-                lastX = touch.clientX;
-                lastY = touch.clientY;
-                pendingTap = { x: touch.clientX, y: touch.clientY, time: Date.now() };
-            }, { passive: false });
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (!isDragging || e.touches.length !== 1) return;
-                const touch = e.touches[0];
-                const dx = touch.clientX - lastX;
-                const dy = touch.clientY - lastY;
-                camYaw -= dx * 0.005;
-                camPitch -= dy * 0.005;
-                camPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, camPitch));
-                lastX = touch.clientX;
-                lastY = touch.clientY;
-                pendingTap = null;
-            }, { passive: false });
-            canvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
+            canvas.addEventListener('pointercancel', () => {
                 isDragging = false;
-                if (pendingTap && Date.now() - pendingTap.time < 300) {
-                    handleTap(pendingTap.x, pendingTap.y);
-                }
                 pendingTap = null;
-            }, { passive: false });
+            });
 
             function handleTap(clientX, clientY) {
                 const rect = canvas.getBoundingClientRect();
@@ -882,14 +859,12 @@
 
                 const ro = [0, 0, -1];
                 let rd = [uvX, -uvY, 1.0];
-                // Apply pitch
                 const pitch = camPitch;
                 rd = [
                     rd[0],
                     rd[1] * Math.cos(pitch) - rd[2] * Math.sin(pitch),
                     rd[1] * Math.sin(pitch) + rd[2] * Math.cos(pitch)
                 ];
-                // Apply yaw
                 const yaw = camYaw;
                 rd = [
                     rd[0] * Math.cos(yaw) + rd[2] * Math.sin(yaw),
@@ -906,7 +881,7 @@
                     const dy = tape.pos[1] - ro[1];
                     const dz = tape.pos[2] - ro[2];
                     const b = dx*rd[0] + dy*rd[1] + dz*rd[2];
-                    const c = dx*dx + dy*dy + dz*dz - 0.15*0.15;
+                    const c = dx*dx + dy*dy + dz*dz - 0.18*0.18; // larger hit radius
                     const disc = b*b - c;
                     if (disc > 0) {
                         const t = -b - Math.sqrt(disc);
@@ -921,9 +896,9 @@
                 }
             }
 
-            // Resize
             function resizeCanvas() {
-                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.25) : Math.min(window.devicePixelRatio || 1, 2);
                 canvas.width = window.innerWidth * dpr;
                 canvas.height = window.innerHeight * dpr;
                 canvas.style.width = window.innerWidth + 'px';
@@ -933,7 +908,6 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // Render loop
             function render(now) {
                 const time = now * 0.001;
                 tapes.forEach(tape => tape.update(time));

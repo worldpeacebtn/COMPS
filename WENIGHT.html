@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>St. Pauli WE - Kawaii Cyber HUD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Varela+Round&display=swap');
+
+        :root {
+            --neon-pink: #ff007f;
+            --neon-purple: #b026ff;
+            --neon-cyan: #00f3ff;
+            --neon-green: #39ff14;
+            --neon-yellow: #fffb00;
+            --dark-bg: #050014;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: #fff;
+            font-family: 'Varela Round', sans-serif;
+            overflow: hidden;
+            touch-action: none; /* Prevents pull-to-refresh on mobile */
+        }
+
+        .cyber-font {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .neon-border-pink { border: 2px solid var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink), inset 0 0 10px var(--neon-pink); }
+        .neon-border-cyan { border: 2px solid var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan), inset 0 0 10px var(--neon-cyan); }
+        
+        .neon-text-pink { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); }
+        .neon-text-cyan { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+        .neon-text-purple { color: var(--neon-purple); text-shadow: 0 0 5px var(--neon-purple); }
+
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.3));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.4;
+        }
+
+        .safe-walk-grid {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 50%;
+            background-image: 
+                linear-gradient(to right, var(--neon-purple) 1px, transparent 1px),
+                linear-gradient(to top, var(--neon-purple) 1px, transparent 1px);
+            background-size: 40px 40px;
+            transform: perspective(300px) rotateX(60deg) translateY(100px);
+            transform-origin: bottom center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 20;
+            animation: gridMove 2s linear infinite;
+        }
+        .safe-walk-grid.active { opacity: 0.6; }
+
+        @keyframes gridMove {
+            0% { transform: perspective(300px) rotateX(60deg) translateY(0px); }
+            100% { transform: perspective(300px) rotateX(60deg) translateY(40px); }
+        }
+
+        .guide-rabbit {
+            position: absolute;
+            bottom: 20%; left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            text-shadow: 0 0 20px var(--neon-yellow);
+            opacity: 0;
+            z-index: 21;
+            transition: opacity 0.5s ease;
+            animation: bounce 1s infinite alternate;
+            pointer-events: none;
+        }
+        .guide-rabbit.active { opacity: 1; }
+
+        @keyframes bounce {
+            0% { transform: translate(-50%, 0); }
+            100% { transform: translate(-50%, -20px); text-shadow: 0 0 40px var(--neon-yellow); }
+        }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        #uploadInput { display: none; }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-full select-none">
+
+    <div class="scanlines"></div>
+
+    <!-- Top HUD Bar -->
+    <div class="absolute top-0 w-full p-3 flex justify-between items-start z-40 bg-gradient-to-b from-[#050014]/90 to-transparent pointer-events-none">
+        
+        <!-- Left: Agent/User Profile -->
+        <div class="flex flex-col gap-1 pointer-events-auto">
+            <div class="neon-border-pink rounded-xl p-2 bg-[#050014]/80 flex items-center gap-2 backdrop-blur-sm">
+                <div class="text-3xl">🐰</div>
+                <div class="flex flex-col">
+                    <span class="text-xs text-gray-300">USER</span>
+                    <span class="neon-text-pink font-bold text-sm tracking-wide">ST. PAULI WE ⚓</span>
+                </div>
+            </div>
+            <button onclick="toggleAudio()" id="audioBtn" class="mt-1 bg-[#050014]/80 neon-border-cyan rounded-full px-3 py-1 text-xs flex items-center gap-2 w-fit active:scale-95 transition-transform">
+                <span>🔊</span> <span class="neon-text-cyan">AUDIO ON</span>
+            </button>
+        </div>
+
+        <!-- Right: Status / Network -->
+        <div class="flex flex-col items-end gap-1 pointer-events-auto">
+            <div class="neon-border-cyan rounded-xl p-2 bg-[#050014]/80 backdrop-blur-sm text-right">
+                <div class="flex items-center gap-2 justify-end">
+                    <span class="neon-text-cyan font-bold cyber-font">ECO 90s</span>
+                    <div class="w-3 h-3 rounded-full bg-[#00f3ff] shadow-[0_0_8px_#00f3ff] animate-pulse"></div>
+                </div>
+                <div class="text-[10px] text-gray-400">LOW DATA MODE</div>
+            </div>
+            <!-- Safe Walk Toggle -->
+            <button onclick="toggleSafeWalk()" id="safeWalkBtn" class="mt-1 bg-purple-900/50 border border-[var(--neon-purple)] shadow-[0_0_10px_var(--neon-purple)] rounded-xl px-3 py-2 text-xs flex items-center gap-2 active:scale-95 transition-transform">
+                <span>🌙</span> <span class="text-white font-bold tracking-wide">SAFE WALK</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="relative flex-1 w-full bg-black overflow-hidden flex items-center justify-center">
+        <!-- Grid and Rabbit for Navigation -->
+        <div id="safeGrid" class="safe-walk-grid"></div>
+        <div id="guideRabbit" class="guide-rabbit">🐰<br><span class="text-xs text-white block text-center mt-2 cyber-font">FOLLOW</span></div>
+
+        <video id="cameraFeed" class="hidden" autoplay playsinline></video>
+        <!-- The main canvas for AR and drawing -->
+        <canvas id="viewfinder" class="w-full h-full object-cover touch-none"></canvas>
+    </div>
+
+    <div class="h-56 w-full bg-[#050014] z-40 flex flex-col justify-end pb-6 border-t-2 border-[var(--neon-pink)] shadow-[0_-5px_20px_rgba(255,0,127,0.3)] relative rounded-t-3xl">
+        
+        <!-- Filter Label -->
+        <div class="absolute -top-5 w-full text-center pointer-events-none">
+            <span id="activeFilterName" class="bg-[#050014] text-[var(--neon-cyan)] px-6 py-1 rounded-full text-sm font-bold tracking-widest neon-border-cyan">💖 NATURAL 💖</span>
+        </div>
+
+        <!-- Filter Carousel -->
+        <div class="flex overflow-x-auto hide-scroll gap-4 px-4 mb-4 snap-x snap-mandatory items-center" id="filterCarousel">
+            <button onclick="setFilter('natural', '💖 NATURAL 💖')" class="filter-btn active snap-center shrink-0 w-16 h-16 rounded-2xl bg-gray-800 border-2 border-transparent overflow-hidden relative">
+                <img src="https://placehold.co/100x100/333/fff?text=NAT" class="w-full h-full object-cover" alt="Natural">
+            </button>
+            <button onclick="setFilter('comic', '⭐ NEO TOKYO ⭐')" class="filter-btn snap-center shrink-0 w-16 h-16 rounded-2xl bg-gray-800 border-2 border-transparent overflow-hidden relative">
+                <img src="https://placehold.co/100x100/ff007f/fff?text=COMIC" class="w-full h-full object-cover" alt="Neo Tokyo">
+            </button>
+            <button onclick="setFilter('stpauli', '⚓ ST. PAULI ⚓')" class="filter-btn snap-center shrink-0 w-16 h-16 rounded-2xl bg-gray-800 border-2 border-transparent overflow-hidden relative">
+                <img src="https://placehold.co/100x100/b026ff/fff?text=KIEZ" class="w-full h-full object-cover" alt="St Pauli">
+            </button>
+            <button onclick="setFilter('cyber', '👾 90s CYBER 👾')" class="filter-btn snap-center shrink-0 w-16 h-16 rounded-2xl bg-gray-800 border-2 border-transparent overflow-hidden relative">
+                <img src="https://placehold.co/100x100/39ff14/000?text=90s" class="w-full h-full object-cover" alt="Cyber">
+            </button>
+        </div>
+
+        <div class="flex justify-between items-center px-6">
+            <!-- Upload Photo -->
+            <label class="w-14 h-14 rounded-2xl bg-gray-800 flex items-center justify-center active:scale-95 transition-transform neon-border-cyan shadow-lg cursor-pointer">
+                <span class="text-2xl">📁</span>
+                <input type="file" id="uploadInput" accept="image/*" onchange="handleUpload(event)">
+            </label>
+            
+            <!-- Giant Shutter Button -->
+            <button onclick="takePhoto()" class="w-24 h-24 rounded-full neon-border-pink p-2 active:scale-90 transition-transform flex-shrink-0 shadow-[0_0_20px_var(--neon-pink)] bg-[#050014]">
+                <div class="w-full h-full rounded-full bg-gradient-to-br from-[var(--neon-pink)] to-[var(--neon-purple)] flex items-center justify-center shadow-inner">
+                    <span class="text-3xl text-white font-bold">📸</span>
+                </div>
+            </button>
+
+            <!-- Flip Camera -->
+            <button onclick="flipCamera()" class="w-14 h-14 rounded-2xl bg-gray-800 flex items-center justify-center active:scale-95 transition-transform neon-border-cyan shadow-lg">
+                <span class="text-2xl">🔄</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="photoModal" class="hidden fixed inset-0 z-50 bg-[#050014]/95 flex flex-col items-center justify-center backdrop-blur-md">
+        <h2 class="neon-text-pink text-2xl font-bold mb-4 tracking-widest">✨ PHOTO READY ✨</h2>
+        
+        <div class="relative w-[80%] max-w-sm aspect-[3/4] bg-black rounded-3xl p-1 neon-border-cyan">
+            <img id="finalPhoto" class="w-full h-full object-contain rounded-[1.4rem]" />
+        </div>
+
+        <div class="flex flex-col gap-3 w-[80%] max-w-sm mt-6">
+            <button onclick="makeSticker()" class="w-full py-4 bg-gradient-to-r from-[var(--neon-pink)] to-[var(--neon-purple)] text-white font-bold rounded-2xl shadow-[0_0_15px_var(--neon-pink)] text-xl active:scale-95 transition-transform flex justify-center items-center gap-2">
+                🐰 MAKE STICKER ⚓
+            </button>
+            <button onclick="useStickerInAR()" id="btnAR" class="hidden w-full py-4 bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)] text-white font-bold rounded-2xl shadow-[0_0_15px_var(--neon-cyan)] text-xl active:scale-95 transition-transform flex justify-center items-center gap-2">
+                🎯 PLACE IN AR
+            </button>
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 py-4 bg-gray-800 text-white font-bold rounded-2xl active:bg-gray-700 neon-border-pink">
+                    ❌ DISCARD
+                </button>
+                <button onclick="savePhoto()" class="flex-1 py-4 bg-[var(--neon-green)] text-black font-bold rounded-2xl shadow-[0_0_15px_var(--neon-green)] active:bg-[#2bc20e] text-lg">
+                    💾 SAVE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="msgBox" class="fixed top-24 left-1/2 -translate-x-1/2 bg-[var(--neon-pink)] text-white px-6 py-3 rounded-full font-bold tracking-widest z-[60] shadow-[0_0_20px_var(--neon-pink)] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] text-center border-2 border-white">
+        MESSAGE
+    </div>
+
+    <script>
+        // Wrapping everything in DOMContentLoaded ensures elements exist before we bind to them
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('cameraFeed');
+            const canvas = document.getElementById('viewfinder');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
+            let currentStream = null;
+            let useFrontCamera = false;
+            let currentFilter = 'natural';
+            let isSafeWalk = false;
+            let audioEnabled = true;
+            let uploadedImage = null;
+            
+            let arDots = [];
+            let arStickers = [];
+            let activeStickerImage = null;
+            let interactionMode = 'laser';
+            let isSimulating = false;
+            let isDrawing = false;
+            
+            // Eco-mode processing canvas (Downscaled for 90s vibe and performance)
+            const ECO_WIDTH = 320; 
+            const ECO_HEIGHT = 240;
+            const procCanvas = document.createElement('canvas');
+            const procCtx = procCanvas.getContext('2d', { willReadFrequently: true });
+
+            canvas.addEventListener('pointerdown', (e) => {
+                isDrawing = true;
+                handleCanvasInteraction(e, true);
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (isDrawing && interactionMode === 'laser') {
+                    handleCanvasInteraction(e, false);
+                }
+            });
+
+            window.addEventListener('pointerup', () => {
+                isDrawing = false;
+            });
+
+            function handleCanvasInteraction(e, isClick) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+
+                if (interactionMode === 'sticker' && activeStickerImage) {
+                    if (isClick) {
+                        arStickers.push({ img: activeStickerImage, x, y, timestamp: Date.now() });
+                        
+                        // Kawaii Voice Lines for placing a sticker!
+                        const phrases = [
+                            "Protect the pack!", 
+                            "Saint Pauli Wee!", 
+                            "Meow! Target acquired.", 
+                            "Memory is resistance!",
+                            "Rabbit clan deployed!"
+                        ];
+                        const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+                        speak(randomPhrase);
+                        
+                        showMsg("Sticker Deployed!", "var(--neon-cyan)");
+                        interactionMode = 'laser'; // Revert back to drawing dots
+                    }
+                } else {
+                    // Draw laser dots
+                    arDots.push({ x, y, timestamp: Date.now() });
+                    // Only speak "Boop" on initial click, not while dragging
+                    if (isClick) speak("Boop!");
+                }
+                
+                // If on static uploaded image, manually trigger a frame update
+                if (uploadedImage && (arDots.length > 0 || arStickers.length > 0)) {
+                    requestAnimationFrame(runPipeline);
+                }
+            }
+
+            function speak(text) {
+                if (!audioEnabled || !('speechSynthesis' in window)) return;
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.1;
+                utterance.pitch = 1.3; // Kawaii pitch
+                window.speechSynthesis.speak(utterance);
+            }
+
+            function showMsg(text, color = 'var(--neon-pink)') {
+                const msgBox = document.getElementById('msgBox');
+                msgBox.textContent = text;
+                msgBox.style.backgroundColor = color;
+                msgBox.style.boxShadow = `0 0 20px ${color}`;
+                msgBox.style.opacity = '1';
+                msgBox.style.transform = 'translate(-50%, 0)';
+                if (audioEnabled) speak(text); 
+                setTimeout(() => {
+                    msgBox.style.opacity = '0';
+                    msgBox.style.transform = 'translate(-50%, -20px)';
+                }, 3000);
+            }
+
+            async function initCamera() {
+                uploadedImage = null;
+                isSimulating = false;
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    video: { facingMode: useFrontCamera ? "user" : "environment", width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
+                };
+
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    video.srcObject = currentStream;
+                    video.play();
+                    requestAnimationFrame(processFrame);
+                } catch (err) {
+                    console.warn("Camera access denied. Starting Simulation.");
+                    showMsg("SIMULATION MODE", "var(--neon-pink)");
+                    startSimulation();
+                }
+            }
+
+            function startSimulation() {
+                isSimulating = true;
+                const simCanvas = document.createElement('canvas');
+                simCanvas.width = 640; simCanvas.height = 480;
+                const sCtx = simCanvas.getContext('2d');
+                
+                function drawSim() {
+                    if(!isSimulating) return;
+                    sCtx.fillStyle = '#111';
+                    sCtx.fillRect(0, 0, 640, 480);
+                    
+                    const y = 240 + Math.sin(Date.now()/300) * 80;
+                    const x = 320 + Math.cos(Date.now()/500) * 100;
+                    
+                    sCtx.fillStyle = '#ff007f';
+                    sCtx.beginPath(); sCtx.arc(x, y, 80, 0, Math.PI*2); sCtx.fill();
+                    sCtx.fillStyle = '#fff'; sCtx.font = "30px sans-serif";
+                    sCtx.fillText("MOCK CAM", x - 70, y + 10);
+
+                    if(procCanvas.width !== ECO_WIDTH) procCanvas.width = ECO_WIDTH;
+                    if(procCanvas.height !== ECO_HEIGHT) procCanvas.height = ECO_HEIGHT;
+                    procCtx.drawImage(simCanvas, 0, 0, ECO_WIDTH, ECO_HEIGHT);
+                    
+                    runPipeline();
+                    requestAnimationFrame(drawSim);
+                }
+                drawSim();
+            }
+
+            // We attach them to window so inline HTML onclick handlers NEVER fail.
+            
+            window.toggleAudio = function() {
+                audioEnabled = !audioEnabled;
+                const btn = document.getElementById('audioBtn');
+                if (audioEnabled) {
+                    btn.innerHTML = '<span>🔊</span> <span class="neon-text-cyan">AUDIO ON</span>';
+                    speak("Audio cues enabled.");
+                } else {
+                    btn.innerHTML = '<span>🔇</span> <span class="text-gray-400">AUDIO OFF</span>';
+                }
+            };
+
+            window.flipCamera = function() {
+                useFrontCamera = !useFrontCamera;
+                initCamera();
+                showMsg(useFrontCamera ? "Front Camera" : "Rear Camera", "var(--neon-cyan)");
+            };
+
+            window.handleUpload = function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        uploadedImage = img;
+                        isSimulating = false;
+                        if (currentStream) {
+                            currentStream.getTracks().forEach(track => track.stop());
+                        }
+                        showMsg("Photo Uploaded!", "var(--neon-green)");
+                        requestAnimationFrame(processFrame);
+                    }
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            };
+
+            window.toggleSafeWalk = function() {
+                isSafeWalk = !isSafeWalk;
+                const grid = document.getElementById('safeGrid');
+                const rabbit = document.getElementById('guideRabbit');
+                const btn = document.getElementById('safeWalkBtn');
+                
+                if (isSafeWalk) {
+                    grid.classList.add('active');
+                    rabbit.classList.add('active');
+                    btn.classList.add('bg-[var(--neon-purple)]', 'shadow-[0_0_20px_var(--neon-purple)]');
+                    window.setFilter('safewalk', '🌙 NIGHT VISION AMP 🌙');
+                    showMsg("Night Vision Amplified. Follow the Rabbit.", "var(--neon-purple)");
+                } else {
+                    grid.classList.remove('active');
+                    rabbit.classList.remove('active');
+                    btn.classList.remove('bg-[var(--neon-purple)]', 'shadow-[0_0_20px_var(--neon-purple)]');
+                    window.setFilter('natural', '💖 NATURAL 💖');
+                    showMsg("Safe Walk Deactivated.", "var(--neon-cyan)");
+                }
+            };
+
+            window.setFilter = function(filterName, displayName) {
+                currentFilter = filterName;
+                
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('border-[var(--neon-pink)]', 'scale-110'));
+                
+                const filterMap = ['natural', 'comic', 'stpauli', 'cyber'];
+                const idx = filterMap.indexOf(filterName);
+                if (idx >= 0) {
+                    const btns = document.querySelectorAll('.filter-btn');
+                    if (btns[idx]) btns[idx].classList.add('border-[var(--neon-pink)]', 'scale-110');
+                }
+
+                document.getElementById('activeFilterName').innerText = displayName;
+                
+                if (filterName !== 'safewalk' && isSafeWalk) {
+                    // Turn off safe walk UI if manual filter chosen
+                    isSafeWalk = false;
+                    document.getElementById('safeGrid').classList.remove('active');
+                    document.getElementById('guideRabbit').classList.remove('active');
+                    document.getElementById('safeWalkBtn').classList.remove('bg-[var(--neon-purple)]', 'shadow-[0_0_20px_var(--neon-purple)]');
+                }
+            };
+
+            function applyActiveFilter(w, h) {
+                if(currentFilter === 'natural') return;
+
+                let imgData = procCtx.getImageData(0, 0, w, h);
+                let d = imgData.data;
+
+                if (currentFilter === 'comic') {
+                    for (let i = 0; i < d.length; i += 4) {
+                        d[i] = d[i] - (d[i] % 64);
+                        d[i+1] = d[i+1] - (d[i+1] % 64);
+                        d[i+2] = d[i+2] - (d[i+2] % 64);
+                        d[i] = d[i] > 128 ? Math.min(255, d[i] + 40) : Math.max(0, d[i] - 40);
+                    }
+                    procCtx.putImageData(imgData, 0, 0);
+                    procCtx.globalCompositeOperation = 'difference';
+                    procCtx.drawImage(procCanvas, 2, 2);
+                    procCtx.globalCompositeOperation = 'source-over';
+                    
+                } else if (currentFilter === 'stpauli') {
+                    for (let i = 0; i < d.length; i += 4) {
+                        let r = d[i]; let g = d[i+1]; let b = d[i+2];
+                        d[i] = Math.min(255, r * 1.3 + 40);   
+                        d[i+1] = Math.max(0, g * 0.4);        
+                        d[i+2] = Math.min(255, b * 1.5 + 50); 
+                    }
+                    procCtx.putImageData(imgData, 0, 0);
+                    
+                } else if (currentFilter === 'cyber') {
+                    for (let i = 0; i < d.length; i += 4) {
+                        let avg = (d[i] + d[i+1] + d[i+2]) / 3;
+                        d[i] = 0; d[i+1] = avg > 90 ? 255 : avg; d[i+2] = 0;
+                    }
+                    procCtx.putImageData(imgData, 0, 0);
+                    
+                } else if (currentFilter === 'safewalk') {
+                    // True Light Amplification (Night Vision)
+                    for (let i = 0; i < d.length; i += 4) {
+                        let r = d[i], g = d[i+1], b = d[i+2];
+                        let luma = (r + g + b) / 3;
+                        // Aggressive gamma correction to pull details out of pure black
+                        let boosted = Math.pow(luma / 255, 0.4) * 255; 
+                        // Massive multiplier to enlighten the scene
+                        let lit = Math.min(255, boosted * 2.5);
+
+                        // Tint the enlightened scene in bright Neon Cyan / Teal
+                        d[i] = lit * 0.1;       // Minimal Red
+                        d[i+1] = lit * 0.9;     // High Green
+                        d[i+2] = lit * 1.0;     // Full Blue
+                    }
+                    procCtx.putImageData(imgData, 0, 0);
+                }
+            }
+
+            function processFrame() {
+                if(isSimulating) return;
+
+                const source = uploadedImage || video;
+                const srcWidth = uploadedImage ? uploadedImage.width : video.videoWidth;
+                
+                if (!srcWidth) {
+                    requestAnimationFrame(processFrame);
+                    return;
+                }
+
+                if(procCanvas.width !== ECO_WIDTH) procCanvas.width = ECO_WIDTH;
+                if(procCanvas.height !== ECO_HEIGHT) procCanvas.height = ECO_HEIGHT;
+
+                procCtx.drawImage(source, 0, 0, ECO_WIDTH, ECO_HEIGHT);
+                
+                runPipeline();
+
+                if(!uploadedImage && currentStream) {
+                    requestAnimationFrame(processFrame);
+                }
+            }
+
+            function runPipeline() {
+                const displayWidth = canvas.parentElement.clientWidth;
+                const displayHeight = canvas.parentElement.clientHeight;
+                if(canvas.width !== displayWidth) canvas.width = displayWidth;
+                if(canvas.height !== displayHeight) canvas.height = displayHeight;
+
+                applyActiveFilter(ECO_WIDTH, ECO_HEIGHT);
+
+                ctx.imageSmoothingEnabled = false; 
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const scale = Math.max(canvas.width / ECO_WIDTH, canvas.height / ECO_HEIGHT);
+                const x = (canvas.width / 2) - (ECO_WIDTH / 2) * scale;
+                const y = (canvas.height / 2) - (ECO_HEIGHT / 2) * scale;
+                
+                ctx.drawImage(procCanvas, x, y, ECO_WIDTH * scale, ECO_HEIGHT * scale);
+
+                const now = Date.now();
+                
+                // Draw AR Stickers
+                arStickers.forEach(stk => {
+                    let floatY = Math.sin((now - stk.timestamp) / 500) * 15;
+                    ctx.drawImage(stk.img, stk.x - 75, stk.y - 75 + floatY, 150, 150);
+                });
+
+                // Draw AR Laser Dots (Trails)
+                arDots = arDots.filter(dot => (now - dot.timestamp) < 3000); // fade out faster so it acts like a cat laser trail
+                arDots.forEach(dot => {
+                    let age = now - dot.timestamp;
+                    let opacity = Math.max(0, 1 - (age / 3000));
+                    let size = 8 + Math.sin(age / 100) * 4;
+                    ctx.beginPath();
+                    ctx.arc(dot.x, dot.y, Math.max(2, size), 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 0, 60, ${opacity})`;
+                    ctx.shadowColor = '#ff003c';
+                    ctx.shadowBlur = 15;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+                
+                if (uploadedImage) {
+                    requestAnimationFrame(runPipeline); // keep rendering for AR overlays even if static photo
+                }
+            }
+
+            window.takePhoto = function() {
+                showMsg("Snap!", "var(--neon-yellow)");
+                
+                const flash = document.createElement('div');
+                flash.className = 'fixed inset-0 bg-white z-[100] transition-opacity duration-200 pointer-events-none';
+                document.body.appendChild(flash);
+                setTimeout(() => flash.style.opacity = '0', 50);
+                setTimeout(() => flash.remove(), 250);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                document.getElementById('finalPhoto').src = dataUrl;
+                document.getElementById('photoModal').classList.remove('hidden');
+                speak("Photo ready. Make a sticker or save.");
+            };
+
+            window.closeModal = function() {
+                document.getElementById('photoModal').classList.add('hidden');
+                document.getElementById('finalPhoto').style.background = 'transparent';
+                document.getElementById('btnAR').classList.add('hidden');
+                speak("Discarded.");
+            };
+
+            window.makeSticker = function() {
+                const img = document.getElementById('finalPhoto');
+                
+                const sCanvas = document.createElement('canvas');
+                const sCtx = sCanvas.getContext('2d');
+                sCanvas.width = 600; 
+                sCanvas.height = 800; 
+
+                // White thick border with Neon shadow
+                sCtx.fillStyle = '#fff';
+                sCtx.shadowColor = '#ff007f';
+                sCtx.shadowBlur = 30;
+                sCtx.beginPath();
+                sCtx.ellipse(300, 400, 260, 360, 0, 0, Math.PI*2);
+                sCtx.fill();
+                
+                sCtx.shadowBlur = 0;
+                sCtx.strokeStyle = '#00f3ff';
+                sCtx.lineWidth = 10;
+                sCtx.stroke();
+
+                // Clip the image into the border
+                sCtx.beginPath();
+                sCtx.ellipse(300, 400, 240, 340, 0, 0, Math.PI*2);
+                sCtx.clip();
+                
+                const scale = Math.max(600 / canvas.width, 800 / canvas.height);
+                const x = (600 / 2) - (canvas.width / 2) * scale;
+                const y = (800 / 2) - (canvas.height / 2) * scale;
+                sCtx.drawImage(canvas, x, y, canvas.width * scale, canvas.height * scale);
+
+                // Add Kawaii Text Overlay
+                sCtx.fillStyle = '#fff';
+                sCtx.font = "bold 40px 'Varela Round', sans-serif";
+                sCtx.shadowColor = '#000'; sCtx.shadowBlur = 10;
+                sCtx.fillText("🐰 ST. PAULI WE ⚓", 100, 700);
+
+                img.src = sCanvas.toDataURL('image/png');
+                document.getElementById('btnAR').classList.remove('hidden');
+                showMsg("Sticker Magic Applied!", "var(--neon-green)");
+            };
+
+            window.useStickerInAR = function() {
+                const img = new Image();
+                img.src = document.getElementById('finalPhoto').src;
+                activeStickerImage = img;
+                interactionMode = 'sticker';
+                window.closeModal();
+                showMsg("TAP SCREEN TO DEPLOY STICKER", "var(--neon-cyan)");
+                speak("Tap the screen to place your sticker in augmented reality.");
+                document.getElementById('btnAR').classList.add('hidden');
+                
+                if (uploadedImage) {
+                    requestAnimationFrame(runPipeline);
+                }
+            };
+
+            window.savePhoto = function() {
+                const img = document.getElementById('finalPhoto');
+                const link = document.createElement('a');
+                link.download = `ST_PAULI_WE_${Date.now()}.png`;
+                link.href = img.src;
+                link.click();
+                showMsg("Saved to Device! 💖", "var(--neon-pink)");
+                setTimeout(window.closeModal, 1500);
+            };
+
+            // Start everything!
+            initCamera();
+            setTimeout(() => speak("Welcome to Saint Pauli Wee. Camera ready."), 1000);
+        });
+    </script>
+</body>
+</html>

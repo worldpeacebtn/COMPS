@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TOKYO HOLO-NEO 360° - Ultimate Edition</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js & GLTFLoader for 3D Models -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+
+        :root {
+            --neon-pink: #ff2a8d;
+            --neon-cyan: #00f0ff;
+            --oled-black: #000000;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--oled-black);
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; 
+        }
+
+        .font-cyber { font-family: 'Orbitron', sans-serif; }
+
+        .bottom-sheet {
+            background: rgba(15, 15, 25, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 2px solid rgba(255, 42, 141, 0.5);
+            box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.8);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+            border-radius: 30px 30px 0 0;
+        }
+
+        .sheet-hidden {
+            transform: translateY(110%);
+            pointer-events: none;
+        }
+
+        .neon-btn {
+            background: linear-gradient(135deg, #ff2a8d 0%, #7928ca 50%, #00f0ff 100%);
+            box-shadow: 0 4px 15px rgba(255, 42, 141, 0.4);
+            transition: transform 0.2s, filter 0.2s;
+        }
+        .neon-btn:active {
+            transform: scale(0.95);
+            filter: brightness(1.2);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            height: 20px; /* BIG Track */
+            width: 100%;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 44px; /* MASSIVE Thumb for easy grabbing */
+            width: 44px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            box-shadow: 0 0 20px var(--neon-cyan);
+            cursor: pointer;
+            border: 4px solid white;
+        }
+
+        canvas { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            z-index: 1;
+        }
+
+        #toggle-menu-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            background: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(15px);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+            padding: 16px 36px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            transition: opacity 0.3s, transform 0.2s;
+            cursor: pointer;
+        }
+        #toggle-menu-btn:active { transform: translate(-50%, 5px) scale(0.95); }
+
+        /* Hide scrollbars for absolute finger-friendliness */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .guide-box { display: none; }
+        .guide-active .guide-box { display: block; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas-2d"></canvas>
+    <canvas id="canvas-3d" style="display: none;"></canvas>
+
+    <img id="source-img" style="display:none;" />
+    <video id="source-video" loop playsinline style="display:none;"></video>
+    <audio id="source-audio" loop style="display:none;"></audio>
+
+    <button id="toggle-menu-btn" onclick="toggleMenu()" class="font-cyber font-black text-cyan-300 flex items-center gap-3">
+        <span class="animate-pulse text-2xl">⚙️</span> HUD CONTROLS
+    </button>
+
+    <div id="main-menu" class="bottom-sheet fixed bottom-0 left-0 w-full z-40 flex flex-col max-h-[85vh] sheet-hidden">
+        
+        <!-- Drag Handle Indicator -->
+        <div class="w-full flex justify-center py-3" onclick="toggleMenu()">
+            <div class="w-20 h-2 bg-white/20 rounded-full"></div>
+        </div>
+
+        <div id="menu-container" class="px-6 pb-8 w-full flex flex-col gap-6 overflow-y-auto no-scrollbar">
+            
+            <!-- Header & Close -->
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <div>
+                    <h1 class="text-3xl font-black font-cyber text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-cyan-400 leading-tight">
+                        HOLO-NEO
+                    </h1>
+                    <p class="text-slate-400 text-sm uppercase tracking-widest font-bold">Pro Edition</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="toggleGuide()" id="btn-guide" class="bg-slate-800 border-2 border-slate-600 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition" title="Show Guide">
+                        📖
+                    </button>
+                    <button onclick="toggleMenu()" class="bg-pink-500/20 border-2 border-pink-500 text-pink-300 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl hover:bg-pink-500/40 transition">
+                        ✖
+                    </button>
+                </div>
+            </div>
+
+            <div class="guide-box bg-gradient-to-br from-amber-900/50 to-orange-900/50 p-5 rounded-2xl border-2 border-amber-500/50">
+                <h2 class="font-cyber font-bold text-amber-400 text-lg mb-3 flex items-center gap-2">
+                    <span>💡</span> HOW TO PLAY
+                </h2>
+                <ol class="text-amber-100/90 text-sm space-y-3 font-semibold ml-4 list-decimal">
+                    <li>Find a <b>clear plastic cup</b> or build a plastic pyramid.</li>
+                    <li>Place it directly on the <span class="text-red-400 font-bold">RED DASHED CIRCLE</span> in the center of the screen.</li>
+                    <li>Turn your phone <b>brightness to 100%</b>.</li>
+                    <li>Dim the lights in your room for the best effect.</li>
+                    <li>Upload an image/video or adjust the size sliders below!</li>
+                </ol>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4">
+                <!-- Medium -->
+                <div class="bg-black/50 p-4 rounded-2xl border border-white/5">
+                    <h2 class="font-cyber font-bold text-pink-300 text-base mb-3 flex items-center gap-2">
+                        <span class="text-xl">📂</span> LOAD MEDIA
+                    </h2>
+                    <div class="flex gap-3">
+                        <label class="neon-btn cursor-pointer flex-1 text-white font-bold py-4 rounded-xl text-center text-lg flex items-center justify-center shadow-lg">
+                            + UPLOAD FILE
+                            <!-- Removed accept restrictions so everything is selectable -->
+                            <input type="file" id="file-input" class="hidden">
+                        </label>
+                        <button onclick="launchDemo('crystal')" class="bg-slate-800 border-2 border-pink-500/50 text-pink-300 font-bold py-4 px-6 rounded-xl text-lg hover:bg-slate-700 transition">
+                            ✨ DEMO
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Projektor Form -->
+                <div class="bg-black/50 p-4 rounded-2xl border border-white/5">
+                    <h2 class="font-cyber font-bold text-cyan-300 text-base mb-3 flex items-center gap-2">
+                        <span class="text-xl">📐</span> CHOOSE HARDWARE
+                    </h2>
+                    <div class="flex gap-3">
+                        <button id="btn-preset-cup" onclick="setMode('circle360')" class="preset-btn active border-cyan-500 bg-cyan-500/20 py-4 flex-1 rounded-xl text-lg font-bold text-white border-2 transition">
+                            ⭕ ROUND CUP
+                        </button>
+                        <button id="btn-preset-pyramid" onclick="setMode('quad4')" class="preset-btn border-transparent bg-slate-800/60 py-4 flex-1 rounded-xl text-lg font-bold text-slate-400 border-2 transition">
+                            🔺 PYRAMID
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-black/50 p-5 rounded-2xl border border-white/5">
+                <h2 class="font-cyber font-bold text-amber-300 text-base mb-5 flex items-center gap-2">
+                    <span class="text-xl">⚙️</span> CALIBRATION
+                </h2>
+                
+                <div class="space-y-8 text-base font-bold text-slate-300">
+                    
+                    <div>
+                        <div class="flex justify-between mb-3">
+                            <span class="text-slate-100">Outer Size</span>
+                            <span id="val-outer" class="text-cyan-300 text-xl font-black">200</span>
+                        </div>
+                        <input type="range" id="slider-outer" min="50" max="1000" value="200">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-3">
+                            <span class="text-slate-100">Inner Hole (Red Circle)</span>
+                            <span id="val-inner" class="text-cyan-300 text-xl font-black">50</span>
+                        </div>
+                        <input type="range" id="slider-inner" min="0" max="600" value="50">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-3">
+                            <span class="text-slate-100">Stretch Level</span>
+                            <span id="val-stretch" class="text-pink-300 text-xl font-black">100%</span>
+                        </div>
+                        <input type="range" id="slider-stretch" min="10" max="800" value="100">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-3">
+                            <span class="text-slate-100">Rotation</span>
+                            <span id="val-rot" class="text-pink-300 text-xl font-black">0°</span>
+                        </div>
+                        <input type="range" id="slider-rot" min="0" max="360" value="0">
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Buffer space at bottom -->
+            <div class="h-10"></div>
+        </div>
+    </div>
+
+    <script>
+        const mainMenu = document.getElementById('main-menu');
+        const toggleBtn = document.getElementById('toggle-menu-btn');
+        let menuOpen = false;
+        let guideActive = false;
+
+        const canvas2d = document.getElementById('canvas-2d');
+        const ctx = canvas2d.getContext('2d');
+        const canvas3d = document.getElementById('canvas-3d');
+
+        const sourceImg = document.getElementById('source-img');
+        const sourceVideo = document.getElementById('source-video');
+        const sourceAudio = document.getElementById('source-audio');
+
+        // Extended configuration with massive limits
+        const config = {
+            innerRadius: 50,      
+            outerRadius: 200,     
+            rotationOffset: 0,    
+            angleStretch: 1.0,    
+            mode: 'circle360',    
+            activeType: 'demo',   
+            demoType: 'crystal'
+        };
+
+        let animationId = null;
+        let audioContext = null, audioAnalyser = null, audioDataArray = null;
+        let scene, renderer, gltfModel, cameras = [];
+        let threeInitialized = false;
+        let textContent = "";
+        let threeClock = null;
+        let threeMixer = null;
+
+        function toggleMenu() {
+            menuOpen = !menuOpen;
+            if (menuOpen) {
+                mainMenu.classList.remove('sheet-hidden');
+                toggleBtn.style.opacity = '0';
+                setTimeout(() => toggleBtn.style.pointerEvents = 'none', 300);
+            } else {
+                mainMenu.classList.add('sheet-hidden');
+                toggleBtn.style.opacity = '1';
+                toggleBtn.style.pointerEvents = 'auto';
+            }
+        }
+
+        function toggleGuide() {
+            guideActive = !guideActive;
+            const btn = document.getElementById('btn-guide');
+            const container = document.getElementById('menu-container');
+            if (guideActive) {
+                container.classList.add('guide-active');
+                btn.classList.replace('bg-slate-800', 'bg-amber-500');
+            } else {
+                container.classList.remove('guide-active');
+                btn.classList.replace('bg-amber-500', 'bg-slate-800');
+            }
+        }
+
+        function setMode(mode) {
+            config.mode = mode;
+            document.querySelectorAll('.preset-btn').forEach(b => {
+                b.classList.remove('active', 'border-cyan-500', 'bg-cyan-500/20', 'text-white');
+                b.classList.add('border-transparent', 'bg-slate-800/60', 'text-slate-400');
+            });
+            const btn = mode === 'circle360' ? document.getElementById('btn-preset-cup') : document.getElementById('btn-preset-pyramid');
+            btn.classList.remove('border-transparent', 'bg-slate-800/60', 'text-slate-400');
+            btn.classList.add('active', 'border-cyan-500', 'bg-cyan-500/20', 'text-white');
+        }
+
+        // Slider Updates
+        document.getElementById('slider-inner').addEventListener('input', (e) => {
+            config.innerRadius = parseInt(e.target.value);
+            document.getElementById('val-inner').innerText = config.innerRadius;
+        });
+        document.getElementById('slider-outer').addEventListener('input', (e) => {
+            config.outerRadius = parseInt(e.target.value);
+            document.getElementById('val-outer').innerText = config.outerRadius;
+        });
+        document.getElementById('slider-rot').addEventListener('input', (e) => {
+            config.rotationOffset = parseInt(e.target.value);
+            document.getElementById('val-rot').innerText = config.rotationOffset + '°';
+        });
+        document.getElementById('slider-stretch').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            config.angleStretch = val / 100;
+            document.getElementById('val-stretch').innerText = val + "%";
+        });
+
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const url = URL.createObjectURL(file);
+            const type = file.type;
+            const name = file.name.toLowerCase();
+
+            resetEngine();
+
+            // Broad check because some OS don't send correct MIME types
+            if (type.startsWith('image/') || name.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+                config.activeType = 'image';
+                sourceImg.onload = () => requestAnimationFrame(renderLoop);
+                sourceImg.src = url;
+            } else if (type.startsWith('video/') || name.match(/\.(mp4|webm|ogg|mov)$/)) {
+                config.activeType = 'video';
+                sourceVideo.src = url;
+                sourceVideo.muted = true;
+                sourceVideo.play().then(() => { sourceVideo.muted = false; }).catch(() => sourceVideo.play());
+                requestAnimationFrame(renderLoop);
+            } else if (type.startsWith('audio/') || name.match(/\.(mp3|wav|ogg)$/)) {
+                config.activeType = 'audio';
+                initAudioVisualizer(url);
+            } else if (name.match(/\.(glb|gltf)$/)) {
+                config.activeType = '3d';
+                load3DModel(url);
+            } else {
+                // Fallback to text
+                config.activeType = 'text';
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    textContent = ev.target.result;
+                    requestAnimationFrame(renderLoop);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function launchDemo(type) {
+            resetEngine();
+            config.activeType = 'demo';
+            config.demoType = type;
+            requestAnimationFrame(renderLoop);
+        }
+
+        function resetEngine() {
+            canvas2d.style.display = 'block';
+            canvas3d.style.display = 'none';
+            cancelAnimationFrame(animationId);
+            sourceVideo.pause();
+            sourceAudio.pause();
+            if (audioContext && audioContext.state === 'running') audioContext.suspend();
+        }
+
+        function resizeCanvases() {
+            canvas2d.width = window.innerWidth;
+            canvas2d.height = window.innerHeight;
+            canvas3d.width = window.innerWidth;
+            canvas3d.height = window.innerHeight;
+            if (threeInitialized && renderer) {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        function renderLoop(timestamp) {
+            animationId = requestAnimationFrame(renderLoop);
+
+            const W = canvas2d.width;
+            const H = canvas2d.height;
+            const cx = W / 2;
+            const cy = H / 2;
+
+            // Pure Black for Hologram clarity
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, W, H);
+
+            const innerR = config.innerRadius;
+            const outerR = config.outerRadius;
+            const size = outerR - innerR;
+            const stretchSize = size * config.angleStretch; 
+            const rotOffsetRad = config.rotationOffset * (Math.PI / 180);
+
+            // Draw content based on type
+            if (config.activeType === 'image' || config.activeType === 'video') {
+                renderMedia(cx, cy, innerR, outerR, stretchSize, rotOffsetRad);
+            } else if (config.activeType === 'text') {
+                renderText(cx, cy, innerR, outerR, stretchSize, rotOffsetRad, timestamp);
+            } else if (config.activeType === 'demo') {
+                renderDemo(cx, cy, innerR, outerR, stretchSize, rotOffsetRad, timestamp);
+            } else if (config.activeType === 'audio') {
+                renderAudio(cx, cy, innerR, outerR, stretchSize, rotOffsetRad);
+            }
+
+            // RED TARGET PLACEMENT CIRCLE (Always drawn on top so users know where to put the cup/pyramid)
+            ctx.save();
+            ctx.translate(cx, cy);
+            
+            // Outer limit (faint)
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(0, 0, outerR, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Inner Hardware placement ring (Bold, Red, Dashed)
+            ctx.strokeStyle = '#ff0044';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([12, 12]);
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ff0044';
+            ctx.beginPath();
+            ctx.arc(0, 0, innerR, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        function renderMedia(cx, cy, innerR, outerR, stretchSize, rotOffsetRad) {
+            let source = config.activeType === 'video' ? sourceVideo : sourceImg;
+            if (!source || !source.width && !source.videoWidth) return;
+
+            const sw = source.videoWidth || source.width;
+            const sh = source.videoHeight || source.height;
+
+            if (config.mode === 'circle360') {
+                // CUP MODE: True 360° Polar Wrap
+                // We slice the source image into 120 vertical strips and draw them in a circle
+                const segments = 120;
+                const angleStep = (Math.PI * 2) / segments;
+                
+                // Calculate how wide each wedge needs to be at the outer edge to prevent gaps
+                const outerCircumference = (innerR + stretchSize) * 2 * Math.PI;
+                const drawWidth = (outerCircumference / segments) + 2; // +2px overlap
+
+                for (let i = 0; i < segments; i++) {
+                    const angle = i * angleStep + rotOffsetRad;
+                    const sliceX = (i / segments) * sw;
+                    const sliceW = sw / segments;
+
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(angle);
+                    
+                    // Move out by the hole size
+                    ctx.translate(0, innerR);
+                    // Flip horizontally to fix mirror reflection reversing
+                    ctx.scale(-1, 1);
+
+                    // Draw the slice stretching outwards
+                    ctx.drawImage(
+                        source, 
+                        sliceX, 0, sliceW, sh, 
+                        -drawWidth/2, 0, drawWidth, stretchSize
+                    );
+                    
+                    ctx.restore();
+                }
+
+            } else {
+                // PYRAMID MODE: 4 distinct flat sides
+                const views = 4;
+                const angleStep = Math.PI * 2 / views;
+                
+                for (let i = 0; i < views; i++) {
+                    const angle = i * angleStep + rotOffsetRad;
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(angle);
+
+                    // Wedge Clip for clean 4-sided pyramid
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, outerR + 1000, -angleStep/2, angleStep/2);
+                    ctx.closePath();
+                    ctx.clip();
+
+                    ctx.translate(0, innerR);
+                    ctx.scale(-1, 1); 
+
+                    // Fill bounds preserving ratio
+                    drawImageCover(ctx, source, -stretchSize/2, 0, stretchSize, stretchSize);
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawImageCover(ctx, img, x, y, w, h) {
+            let imgW = img.videoWidth || img.width;
+            let imgH = img.videoHeight || img.height;
+            let scale = Math.max(w / imgW, h / imgH);
+            let drawW = imgW * scale;
+            let drawH = imgH * scale;
+            let drawX = x + (w - drawW) / 2;
+            let drawY = y + (h - drawH) / 2;
+            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        }
+
+        function renderText(cx, cy, innerR, outerR, stretchSize, rotOffsetRad, time) {
+            const views = config.mode === 'circle360' ? 8 : 4;
+            const angleStep = Math.PI * 2 / views;
+            
+            for (let i = 0; i < views; i++) {
+                const angle = i * angleStep + rotOffsetRad;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+                
+                ctx.translate(0, innerR);
+                ctx.scale(-1, 1); 
+                
+                ctx.fillStyle = '#00f0ff';
+                ctx.font = 'bold 20px Orbitron, monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                
+                const lines = textContent.split('\n');
+                const lineHeight = 24;
+                const maxScroll = Math.max(lines.length * lineHeight, stretchSize);
+                const scrollOffset = (time * 0.04) % (maxScroll + stretchSize);
+                
+                ctx.translate(0, stretchSize - scrollOffset);
+                
+                for (let j = 0; j < lines.length; j++) {
+                    const y = j * lineHeight;
+                    if (y > -stretchSize - lineHeight && y < stretchSize + maxScroll) {
+                        ctx.fillText(lines[j].substring(0, 40), 0, y);
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        function renderDemo(cx, cy, innerR, outerR, stretchSize, rotOffsetRad, time) {
+            const t = time * 0.002;
+            const count = config.mode === 'circle360' ? 12 : 4; // More objects for round cup
+
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2 + rotOffsetRad + (config.mode === 'circle360' ? t*0.2 : 0);
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+                ctx.translate(0, innerR + stretchSize / 2);
+                ctx.scale(1, config.angleStretch); 
+
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ff2a8d';
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 6;
+                
+                ctx.beginPath();
+                const s = (stretchSize) * 0.3;
+                for (let k = 0; k < 5; k++) {
+                    const rot = (k * Math.PI * 2 / 5) + t;
+                    const x = Math.cos(rot) * s;
+                    const y = Math.sin(rot) * s;
+                    if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(0, 0, Math.sin(t * 3) * 8 + 15, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        function initAudioVisualizer(url) {
+            sourceAudio.src = url;
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioAnalyser = audioContext.createAnalyser();
+                audioAnalyser.fftSize = 128;
+                const sourceNode = audioContext.createMediaElementSource(sourceAudio);
+                sourceNode.connect(audioAnalyser);
+                audioAnalyser.connect(audioContext.destination);
+                audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+            }
+            if (audioContext.state === 'suspended') audioContext.resume();
+            sourceAudio.play();
+            requestAnimationFrame(renderLoop);
+        }
+
+        function renderAudio(cx, cy, innerR, outerR, stretchSize, rotOffsetRad) {
+            if (audioAnalyser) audioAnalyser.getByteFrequencyData(audioDataArray);
+            
+            const numBars = audioDataArray ? audioDataArray.length : 64;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(rotOffsetRad);
+
+            for (let i = 0; i < numBars; i++) {
+                const angle = (i / numBars) * Math.PI * 2;
+                const barHeight = audioDataArray ? (audioDataArray[i] / 255) * stretchSize : stretchSize * 0.5;
+
+                ctx.save();
+                ctx.rotate(angle);
+
+                const hue = (i / numBars) * 360; 
+                ctx.fillStyle = `hsl(${hue}, 100%, 60%)`;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+
+                ctx.fillRect(-3, innerR, 6, barHeight);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-3, innerR + barHeight + 4, 6, 6);
+
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        function load3DModel(url) {
+            canvas2d.style.display = 'none';
+            canvas3d.style.display = 'block';
+            if (!threeInitialized) initThreeJS();
+
+            if (gltfModel) scene.remove(gltfModel);
+            if (threeMixer) { threeMixer.stopAllAction(); threeMixer = null; }
+
+            const loader = new THREE.GLTFLoader();
+            loader.load(url, (gltf) => {
+                gltfModel = gltf.scene;
+                
+                const box = new THREE.Box3().setFromObject(gltfModel);
+                const size = box.getSize(new THREE.Vector3()).length();
+                const center = box.getCenter(new THREE.Vector3());
+                gltfModel.position.sub(center);
+                
+                const scale = size > 0 ? (3.0 / size) : 1;
+                gltfModel.scale.set(scale, scale, scale);
+
+                scene.add(gltfModel);
+                
+                if (gltf.animations && gltf.animations.length) {
+                    threeMixer = new THREE.AnimationMixer(gltfModel);
+                    threeMixer.clipAction(gltf.animations[0]).play();
+                }
+
+                requestAnimationFrame(render3DLoop);
+            });
+        }
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = null; // Transparent to allow drawing the red circle behind? 
+            threeClock = new THREE.Clock();
+            
+            scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+            hemiLight.position.set(0, 20, 0);
+            scene.add(hemiLight);
+            
+            const pLight1 = new THREE.PointLight(0xff2a8d, 2, 10); pLight1.position.set(2, 3, 2); scene.add(pLight1);
+            const pLight2 = new THREE.PointLight(0x00f0ff, 2, 10); pLight2.position.set(-2, -3, -2); scene.add(pLight2);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.autoClear = false;
+
+            // Generate 8 cameras (to handle both pyramid and cup reasonably well in 3D without lagging)
+            for(let i=0; i<8; i++) {
+                cameras.push(new THREE.PerspectiveCamera(45, 1, 0.1, 100));
+            }
+            threeInitialized = true;
+            resizeCanvases();
+        }
+
+        function render3DLoop() {
+            if (config.activeType !== '3d' || !gltfModel) return;
+            animationId = requestAnimationFrame(render3DLoop);
+
+            const delta = threeClock.getDelta();
+            if (threeMixer) threeMixer.update(delta);
+
+            gltfModel.rotation.y += 0.01;
+
+            renderer.clear();
+            
+            // Re-draw the red circle on the 2D canvas underneath the 3D!
+            const W = canvas2d.width;
+            const H = canvas2d.height;
+            const cx = W / 2;
+            const cy = H / 2;
+            ctx.clearRect(0,0,W,H);
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.strokeStyle = '#ff0044';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([12, 12]);
+            ctx.beginPath();
+            ctx.arc(0, 0, config.innerRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+
+            const innerR = config.innerRadius;
+            const size = config.outerRadius - innerR;
+            const camPitch = (config.angleStretch - 1.0) * 5; 
+            const D = 5;
+
+            const rot = config.rotationOffset * (Math.PI / 180);
+            const viewCount = config.mode === 'circle360' ? 8 : 4;
+            const step = (Math.PI * 2) / viewCount;
+
+            for(let i=0; i<viewCount; i++) {
+                const cam = cameras[i];
+                const a = rot + i * step;
+                
+                cam.position.set(Math.sin(a) * D, camPitch, Math.cos(a) * D);
+                cam.up.set(Math.sin(a)*-1, -1, Math.cos(a)*-1); 
+                cam.lookAt(0,0,0);
+
+                // Math to position viewport in a circle
+                const distFromCenter = innerR + size/2;
+                const vpX = cx + Math.sin(a) * distFromCenter - size/2;
+                // WebGL y is from bottom
+                const vpY = (H - cy) + Math.cos(a) * distFromCenter - size/2;
+
+                renderer.setViewport(vpX, vpY, size, size);
+                renderer.render(scene, cam);
+            }
+        }
+        
+        launchDemo('crystal');
+    </script>
+</body>
+</html>

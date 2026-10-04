@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TOKYO HOLO-NEO 360° - Circle & Pyramid Hologram Engine</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js & GLTFLoader for 3D Models -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+
+        :root {
+            --neon-pink: #ff2a8d;
+            --neon-cyan: #00f0ff;
+            --oled-black: #000000;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--oled-black);
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            /* Verhindert versehentliches Markieren/Zoomen durch Kinder */
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; 
+        }
+
+        .font-cyber { font-family: 'Orbitron', sans-serif; }
+
+        /* Glassmorphism für das schwebende Menü */
+        .glass-menu {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 42, 141, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+        }
+
+        .menu-hidden {
+            transform: translateX(120%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Buttons & Sliders (Extragroß für Barrierefreiheit) */
+        .neon-btn {
+            background: linear-gradient(135deg, #ff2a8d 0%, #7928ca 50%, #00f0ff 100%);
+            box-shadow: 0 4px 15px rgba(255, 42, 141, 0.4);
+            transition: transform 0.2s, filter 0.2s;
+        }
+        .neon-btn:active {
+            transform: scale(0.95);
+            filter: brightness(1.2);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            height: 12px; /* Dicker für ältere Menschen/Kinder */
+            width: 100%;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 28px;
+            width: 28px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            box-shadow: 0 0 15px var(--neon-cyan);
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        /* Hologramm Leinwände */
+        canvas { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            z-index: 1;
+        }
+
+        /* Schwebender Toggle-Button (Immer sichtbar) */
+        #toggle-menu-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 240, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: opacity 0.3s, transform 0.2s;
+            cursor: pointer;
+        }
+        #toggle-menu-btn:active { transform: scale(0.9); }
+
+        /* Geführter Modus (Hilfetexte) */
+        .guide-text {
+            display: none;
+            color: #fbbf24;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            line-height: 1.2;
+        }
+        .guide-active .guide-text { display: block; }
+
+        /* Verhindert Scrollen im Body, erlaubt es im Menü */
+        #menu-container {
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+        
+        /* Schlanke Scrollbar für das Panel */
+        #menu-container::-webkit-scrollbar { width: 6px; }
+        #menu-container::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.3); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- 2D Canvas (Bilder, Video, Audio) -->
+    <canvas id="canvas-2d"></canvas>
+    <!-- 3D Canvas (Three.js Modelle) -->
+    <canvas id="canvas-3d" style="display: none;"></canvas>
+
+    <!-- Versteckte Medien-Elemente -->
+    <img id="source-img" style="display:none;" />
+    <video id="source-video" loop playsinline style="display:none;"></video>
+    <audio id="source-audio" loop style="display:none;"></audio>
+
+    <!-- Immer sichtbarer Knopf, um das Menü aufzurufen -->
+    <button id="toggle-menu-btn" onclick="toggleMenu()" class="font-cyber font-bold text-cyan-300 flex items-center gap-2 menu-hidden">
+        <span class="animate-pulse">⚙️</span> SETTINGS
+    </button>
+
+    <!-- Das Hauptmenü (HUD Side-Panel Format) -->
+    <div id="main-menu" class="glass-menu fixed top-4 right-4 w-80 max-w-[calc(100vw-2rem)] z-40 rounded-2xl flex flex-col">
+        
+        <div id="menu-container" class="px-5 py-5 w-full flex flex-col gap-4">
+            
+            <!-- Header & Guide Toggle & Close -->
+            <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                <div>
+                    <h1 class="text-xl font-black font-cyber text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-cyan-400 leading-tight">
+                        HOLO-NEO
+                    </h1>
+                    <p class="text-slate-400 text-[10px] uppercase tracking-wider">Control Panel</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="toggleGuide()" id="btn-guide" class="bg-slate-800/80 border border-slate-600 w-8 h-8 rounded-lg flex items-center justify-center text-sm transition" title="Hilfe umschalten">
+                        💡
+                    </button>
+                    <button onclick="toggleMenu()" class="bg-pink-500/20 border border-pink-500/50 text-pink-300 w-8 h-8 rounded-lg flex items-center justify-center text-sm hover:bg-pink-500/40 transition" title="Menü minimieren">
+                        ✖
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCHRITT 1: Datei wählen -->
+            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-pink-400 text-sm">📂</span>
+                    <h2 class="font-cyber font-bold text-pink-300 text-sm">MEDIUM</h2>
+                </div>
+                <p class="guide-text mb-2">Wähle Bild, Video, Audio oder ein 3D-Modell (.glb).</p>
+                
+                <div class="grid grid-cols-2 gap-2 mb-1">
+                    <label class="neon-btn cursor-pointer block w-full text-white font-bold py-2 px-1 rounded-lg text-center text-xs flex items-center justify-center shadow-lg">
+                        Upload
+                        <input type="file" id="file-input" class="hidden" accept="image/*,video/*,audio/*,.glb,.gltf">
+                    </label>
+                    <button onclick="launchDemo('crystal')" class="bg-slate-800 border border-pink-500/50 text-pink-300 font-bold py-2 px-1 rounded-lg text-xs hover:bg-slate-700 transition">
+                        ✨ Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCHRITT 2: Form wählen -->
+            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-cyan-400 text-sm">📐</span>
+                    <h2 class="font-cyber font-bold text-cyan-300 text-sm">PROJEKTOR</h2>
+                </div>
+                <p class="guide-text mb-2">Runder Becher oder eckige Pyramide?</p>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-preset-cup" onclick="setMode('circle360')" class="preset-btn active border-cyan-500 bg-cyan-500/20 py-2 px-1 rounded-lg text-xs font-bold text-white border transition">
+                        ⭕ Rund
+                    </button>
+                    <button id="btn-preset-pyramid" onclick="setMode('quad4')" class="preset-btn border-transparent bg-slate-800/60 py-2 px-1 rounded-lg text-xs font-bold text-slate-400 border transition">
+                        🔺 Eckig
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCHRITT 3: Anpassung (Winkel & Größe) -->
+            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-amber-400 text-sm">⚙️</span>
+                    <h2 class="font-cyber font-bold text-amber-300 text-sm">KALIBRIERUNG</h2>
+                </div>
+                <p class="guide-text mb-3">Passe die Regler an, während du das Hologramm betrachtest.</p>
+                
+                <div class="space-y-4 text-xs font-bold text-slate-300">
+                    
+                    <!-- Größe/Breite -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span>Größe (Außen)</span>
+                            <span id="val-outer" class="text-cyan-300">140</span>
+                        </div>
+                        <input type="range" id="slider-outer" min="50" max="350" value="140">
+                    </div>
+
+                    <!-- Lochgröße (Innenradius) -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span>Loch (Innen)</span>
+                            <span id="val-inner" class="text-cyan-300">35</span>
+                        </div>
+                        <input type="range" id="slider-inner" min="0" max="200" value="35">
+                    </div>
+
+                    <!-- Drehung (Rotation) -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span>Rotation</span>
+                            <span id="val-rot" class="text-pink-300">0°</span>
+                        </div>
+                        <input type="range" id="slider-rot" min="0" max="360" value="0">
+                    </div>
+
+                    <!-- Winkel/Verzerrung (Stretch) -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span>Verzerrung (Stretch)</span>
+                            <span id="val-stretch" class="text-pink-300">100%</span>
+                        </div>
+                        <input type="range" id="slider-stretch" min="50" max="200" value="100">
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Farbe & Filter -->
+            <div class="bg-black/40 p-3 rounded-xl border border-white/5 flex items-center justify-between">
+                <span class="font-bold text-slate-300 text-xs">🎨 Filter:</span>
+                <select id="select-filter" class="bg-slate-900 border border-pink-500/30 rounded-md p-1.5 text-pink-300 text-xs font-bold w-1/2 outline-none">
+                    <option value="none">Keiner</option>
+                    <option value="sailorPink">Pink</option>
+                    <option value="cyberCyan">Cyan</option>
+                    <option value="rainbow">Rainbow</option>
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- UI STATE & DOM ELEMENTS ---
+        const mainMenu = document.getElementById('main-menu');
+        const toggleBtn = document.getElementById('toggle-menu-btn');
+        const menuContainer = document.getElementById('menu-container');
+        let menuOpen = true;
+        let guideActive = false;
+
+        const canvas2d = document.getElementById('canvas-2d');
+        const ctx = canvas2d.getContext('2d');
+        const canvas3d = document.getElementById('canvas-3d');
+
+        const sourceImg = document.getElementById('source-img');
+        const sourceVideo = document.getElementById('source-video');
+        const sourceAudio = document.getElementById('source-audio');
+
+        // --- KONFIGURATION & GEOMETRIE (Inkl. neuer Winkel) ---
+        const config = {
+            innerRadius: 35,      // Größe des Lochs in der Mitte
+            outerRadius: 140,     // Gesamtgröße
+            rotationOffset: 0,    // NEU: Bilddrehung (0-360 Grad)
+            angleStretch: 1.0,    // NEU: Verzerrungskorrektur für Becherwinkel (0.5 bis 2.0)
+            mode: 'circle360',    // 'circle360' (Becher) oder 'quad4' (Pyramide)
+            filter: 'none',
+            activeType: 'demo',   // Was wird gerade gezeigt?
+            demoType: 'crystal'
+        };
+
+        // --- AUDIO & 3D VARIABLEN ---
+        let animationId = null;
+        let audioContext = null, audioAnalyser = null, audioDataArray = null;
+        let scene, renderer, gltfModel, cameras = [];
+        let threeInitialized = false;
+
+        // --- UI STEUERUNG (Menü & Barrierefreiheit) ---
+        function toggleMenu() {
+            menuOpen = !menuOpen;
+            if (menuOpen) {
+                mainMenu.classList.remove('menu-hidden');
+                toggleBtn.classList.add('menu-hidden'); // Verstecke den Settings-Knopf sanft
+            } else {
+                mainMenu.classList.add('menu-hidden');
+                toggleBtn.classList.remove('menu-hidden'); // Zeige den Settings-Knopf
+            }
+        }
+
+        function toggleGuide() {
+            guideActive = !guideActive;
+            const btn = document.getElementById('btn-guide');
+            if (guideActive) {
+                menuContainer.classList.add('guide-active');
+                btn.classList.replace('bg-slate-800/80', 'bg-amber-500/20');
+                btn.classList.replace('text-slate-300', 'text-amber-400');
+                btn.classList.replace('border-slate-600', 'border-amber-500');
+            } else {
+                menuContainer.classList.remove('guide-active');
+                btn.classList.replace('bg-amber-500/20', 'bg-slate-800/80');
+                btn.classList.replace('text-amber-400', 'text-slate-300');
+                btn.classList.replace('border-amber-500', 'border-slate-600');
+            }
+        }
+
+        function setMode(mode) {
+            config.mode = mode;
+            document.querySelectorAll('.preset-btn').forEach(b => {
+                b.classList.remove('active', 'border-cyan-500', 'bg-cyan-500/20', 'text-white');
+                b.classList.add('border-transparent', 'bg-slate-800/60', 'text-slate-400');
+            });
+            const btn = mode === 'circle360' ? document.getElementById('btn-preset-cup') : document.getElementById('btn-preset-pyramid');
+            btn.classList.remove('border-transparent', 'bg-slate-800/60', 'text-slate-400');
+            btn.classList.add('active', 'border-cyan-500', 'bg-cyan-500/20', 'text-white');
+        }
+
+        // --- SLIDER EVENTS (Größe & Winkel) ---
+        document.getElementById('slider-inner').addEventListener('input', (e) => {
+            config.innerRadius = parseInt(e.target.value);
+            document.getElementById('val-inner').innerText = config.innerRadius;
+        });
+        document.getElementById('slider-outer').addEventListener('input', (e) => {
+            config.outerRadius = parseInt(e.target.value);
+            document.getElementById('val-outer').innerText = config.outerRadius;
+        });
+        document.getElementById('slider-rot').addEventListener('input', (e) => {
+            config.rotationOffset = parseInt(e.target.value);
+            document.getElementById('val-rot').innerText = config.rotationOffset + '°';
+        });
+        document.getElementById('slider-stretch').addEventListener('input', (e) => {
+            // Wert von 50 bis 200 wird zu 0.5 bis 2.0 (Faktor)
+            const val = parseInt(e.target.value);
+            config.angleStretch = val / 100;
+            document.getElementById('val-stretch').innerText = val + "%";
+        });
+        document.getElementById('select-filter').addEventListener('change', (e) => {
+            config.filter = e.target.value;
+        });
+
+        // --- DATEI-VERARBEITUNG ---
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const url = URL.createObjectURL(file);
+            const mime = file.type;
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            resetEngine();
+
+            if (mime.startsWith('image/')) {
+                config.activeType = 'image';
+                sourceImg.onload = () => requestAnimationFrame(renderLoop);
+                sourceImg.src = url;
+            } else if (mime.startsWith('video/')) {
+                config.activeType = 'video';
+                sourceVideo.src = url;
+                sourceVideo.muted = true;
+                sourceVideo.play().then(() => { sourceVideo.muted = false; }).catch(() => sourceVideo.play());
+                requestAnimationFrame(renderLoop);
+            } else if (mime.startsWith('audio/')) {
+                config.activeType = 'audio';
+                initAudioVisualizer(url);
+            } else if (ext === 'glb' || ext === 'gltf') {
+                config.activeType = '3d';
+                load3DModel(url);
+            }
+            // Menü NICHT automatisch schließen (für Live-Tuning)
+        });
+
+        function launchDemo(type) {
+            resetEngine();
+            config.activeType = 'demo';
+            config.demoType = type;
+            requestAnimationFrame(renderLoop);
+            // Menü NICHT automatisch schließen (für Live-Tuning)
+        }
+
+        function resetEngine() {
+            canvas2d.style.display = 'block';
+            canvas3d.style.display = 'none';
+            cancelAnimationFrame(animationId);
+            sourceVideo.pause();
+            sourceAudio.pause();
+            if (audioContext && audioContext.state === 'running') audioContext.suspend();
+        }
+
+        // Automatische Skalierung
+        function resizeCanvases() {
+            canvas2d.width = window.innerWidth;
+            canvas2d.height = window.innerHeight;
+            canvas3d.width = window.innerWidth;
+            canvas3d.height = window.innerHeight;
+            if (threeInitialized && renderer) {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // --- 2D RENDER LOOP ---
+        function renderLoop(timestamp) {
+            animationId = requestAnimationFrame(renderLoop);
+
+            const W = canvas2d.width;
+            const H = canvas2d.height;
+            const cx = W / 2;
+            const cy = H / 2;
+
+            // OLED Black Background (Spart Akku)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, W, H);
+
+            // Filter anwenden
+            if (config.filter === 'sailorPink') ctx.filter = 'hue-rotate(290deg) saturate(180%) brightness(1.2)';
+            else if (config.filter === 'cyberCyan') ctx.filter = 'hue-rotate(140deg) saturate(200%)';
+            else if (config.filter === 'rainbow') ctx.filter = `hue-rotate(${(timestamp / 20) % 360}deg) saturate(200%)`;
+            else ctx.filter = 'none';
+
+            const innerR = config.innerRadius;
+            const outerR = config.outerRadius;
+            const size = outerR - innerR;
+            // Die Streckung basierend auf dem Becherwinkel
+            const stretchSize = size * config.angleStretch; 
+
+            // Offset umrechnen (Grad in Radiant)
+            const rotOffsetRad = config.rotationOffset * (Math.PI / 180);
+
+            if (config.activeType === 'image' || config.activeType === 'video') {
+                let source = config.activeType === 'video' ? sourceVideo : sourceImg;
+                if (!source) return;
+
+                if (config.mode === 'circle360') {
+                    // BECHER/KEGEL MODUS (Runde Streifen)
+                    const segments = 32; // Höhere Auflösung für smoothe Rundung
+                    for (let i = 0; i < segments; i++) {
+                        // Der Winkel dieses Segments + die Benutzer-Drehung
+                        const angle = (i / segments) * Math.PI * 2 + rotOffsetRad;
+                        
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.rotate(angle);
+
+                        // Schneide ein tortenstückförmiges Fenster aus
+                        ctx.beginPath();
+                        ctx.arc(0, 0, outerR + (stretchSize - size), -Math.PI / segments, Math.PI / segments);
+                        ctx.arc(0, 0, innerR, Math.PI / segments, -Math.PI / segments, true);
+                        ctx.closePath();
+                        ctx.clip();
+
+                        // Zeichne das Bild (gestreckt/gestaucht basierend auf Slider)
+                        ctx.drawImage(source, -size/2, innerR, size, stretchSize);
+                        ctx.restore();
+                    }
+                } else {
+                    // PYRAMIDEN MODUS (4 Seiten)
+                    for (let i = 0; i < 4; i++) {
+                        const angle = (i / 4) * Math.PI * 2 + rotOffsetRad;
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.rotate(angle);
+                        ctx.translate(0, innerR);
+                        
+                        // Bild für Pyramide spiegeln
+                        ctx.scale(1, -1);
+                        drawImageCover(ctx, source, -size / 2, -stretchSize, size, stretchSize);
+                        ctx.restore();
+                    }
+                }
+            } else if (config.activeType === 'demo') {
+                renderDemo(cx, cy, innerR, outerR, stretchSize, rotOffsetRad, timestamp);
+            } else if (config.activeType === 'audio') {
+                renderAudio(cx, cy, innerR, outerR, stretchSize, rotOffsetRad);
+            }
+
+            ctx.filter = 'none'; // Zurücksetzen
+        }
+
+        // Hilfsfunktion: Bild zentriert und gefüllt zeichnen
+        function drawImageCover(ctx, img, x, y, w, h) {
+            let imgW = img.videoWidth || img.width;
+            let imgH = img.videoHeight || img.height;
+            if (!imgW || !imgH) return;
+            let scale = Math.max(w / imgW, h / imgH);
+            let drawW = imgW * scale;
+            let drawH = imgH * scale;
+            let drawX = x + (w - drawW) / 2;
+            let drawY = y + (h - drawH) / 2;
+            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        }
+
+        function renderDemo(cx, cy, innerR, outerR, stretchSize, rotOffsetRad, time) {
+            const t = time * 0.002;
+            const count = config.mode === 'circle360' ? 8 : 4;
+
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2 + rotOffsetRad + (config.mode === 'circle360' ? t*0.2 : 0);
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+                ctx.translate(0, innerR + stretchSize / 2);
+
+                // Sailor Mond/Stern Demo
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ff2a8d';
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 4;
+                
+                // Form zeichnen und strecken
+                ctx.scale(1, config.angleStretch); 
+                
+                ctx.beginPath();
+                const s = (outerR - innerR) * 0.3;
+                for (let k = 0; k < 5; k++) {
+                    const rot = (k * Math.PI * 2 / 5) + t;
+                    const x = Math.cos(rot) * s;
+                    const y = Math.sin(rot) * s;
+                    if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(0, 0, Math.sin(t * 3) * 5 + 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        function initAudioVisualizer(url) {
+            sourceAudio.src = url;
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioAnalyser = audioContext.createAnalyser();
+                audioAnalyser.fftSize = 64;
+                const sourceNode = audioContext.createMediaElementSource(sourceAudio);
+                sourceNode.connect(audioAnalyser);
+                audioAnalyser.connect(audioContext.destination);
+                audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+            }
+            if (audioContext.state === 'suspended') audioContext.resume();
+            sourceAudio.play();
+            requestAnimationFrame(renderLoop);
+        }
+
+        function renderAudio(cx, cy, innerR, outerR, stretchSize, rotOffsetRad) {
+            if (audioAnalyser) audioAnalyser.getByteFrequencyData(audioDataArray);
+            
+            const numBars = audioDataArray ? audioDataArray.length : 32;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(rotOffsetRad);
+
+            for (let i = 0; i < numBars; i++) {
+                const angle = (i / numBars) * Math.PI * 2;
+                // Skaliere die Höhe der Bars basierend auf dem Stretch-Faktor
+                const barHeight = audioDataArray ? (audioDataArray[i] / 255) * stretchSize : stretchSize * 0.5;
+
+                ctx.save();
+                ctx.rotate(angle);
+
+                const hue = (i / numBars) * 300; 
+                ctx.fillStyle = `hsl(${hue}, 100%, 65%)`;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+
+                ctx.fillRect(-2, innerR, 4, barHeight);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-2, innerR + barHeight + 2, 4, 4);
+
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        // --- 3D THREE.JS RENDERER ---
+        function load3DModel(url) {
+            canvas2d.style.display = 'none';
+            canvas3d.style.display = 'block';
+            if (!threeInitialized) initThreeJS();
+
+            if (gltfModel) scene.remove(gltfModel);
+
+            const loader = new THREE.GLTFLoader();
+            loader.load(url, (gltf) => {
+                gltfModel = gltf.scene;
+                
+                // Zentrieren
+                const box = new THREE.Box3().setFromObject(gltfModel);
+                const size = box.getSize(new THREE.Vector3()).length();
+                const center = box.getCenter(new THREE.Vector3());
+                gltfModel.position.sub(center);
+                
+                const scale = 3.0 / size;
+                gltfModel.scale.set(scale, scale, scale);
+
+                scene.add(gltfModel);
+                requestAnimationFrame(render3DLoop);
+            });
+        }
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            
+            const pLight1 = new THREE.PointLight(0xff2a8d, 2, 10); pLight1.position.set(2, 3, 2); scene.add(pLight1);
+            const pLight2 = new THREE.PointLight(0x00f0ff, 2, 10); pLight2.position.set(-2, -3, -2); scene.add(pLight2);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: false });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.autoClear = false;
+
+            for(let i=0; i<4; i++) {
+                cameras.push(new THREE.PerspectiveCamera(45, 1, 0.1, 100));
+            }
+            threeInitialized = true;
+            resizeCanvases();
+        }
+
+        function render3DLoop() {
+            if (config.activeType !== '3d' || !gltfModel) return;
+            animationId = requestAnimationFrame(render3DLoop);
+
+            gltfModel.rotation.y += 0.01;
+
+            renderer.clear();
+            const W = canvas3d.width;
+            const H = canvas3d.height;
+            const cx = W / 2;
+            const cy = H / 2;
+            
+            const innerR = config.innerRadius;
+            const size = config.outerRadius - innerR;
+            // Bei 3D nutzen wir den Stretch-Wert, um die Kamera-Höhe (Pitch) anzupassen!
+            // Ein Wert > 1.0 bedeutet, wir schauen mehr von oben herab.
+            const camPitch = (config.angleStretch - 1.0) * 5; 
+            const D = 5;
+
+            // Kamera-Positionen aktualisieren (inklusive Rotation Offset)
+            const rot = config.rotationOffset * (Math.PI / 180);
+            const camData = [
+                { id: 0, a: rot + 0 },
+                { id: 1, a: rot + Math.PI },
+                { id: 2, a: rot + Math.PI/2 },
+                { id: 3, a: rot - Math.PI/2 }
+            ];
+
+            camData.forEach((cd, idx) => {
+                const cam = cameras[idx];
+                // Kameras auf einem Kreis positionieren
+                cam.position.set(Math.sin(cd.a) * D, camPitch, Math.cos(cd.a) * D);
+                // "Oben" ausrichten (für Pyramidenreflexion)
+                cam.up.set(Math.sin(cd.a)*-1, -1, Math.cos(cd.a)*-1); 
+                cam.lookAt(0,0,0);
+            });
+
+            // 4 Viewports um das Zentrum rendern
+            const offsets = [
+                { x: cx - size/2, y: cy + innerR },
+                { x: cx - size/2, y: cy - innerR - size },
+                { x: cx - innerR - size, y: cy - size/2 },
+                { x: cx + innerR, y: cy - size/2 }
+            ];
+
+            cameras.forEach((cam, idx) => {
+                const pos = offsets[idx];
+                renderer.setViewport(pos.x, H - pos.y - size, size, size);
+                renderer.render(scene, cam);
+            });
+        }
+        
+        // Initial Demo starten
+        launchDemo('crystal');
+    </script>
+</body>
+</html>
